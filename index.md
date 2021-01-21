@@ -1,12 +1,18 @@
-## Welcome to GitHub Pages
+## About 
+‘p > 0.95’ or ‘p95’ is a place for deep insights into the myriad ecosystems of Big Tech. 
 
-You can use the [editor on GitHub](https://github.com/rsarin20/p95/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+We look at products, systems, user behaviour, product design, organizational structures, management and how they come together to impact our lives.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+You will also find analysis of data that represent pressing needs of our time and untapped opportunities arising from global trends. 
 
-### Markdown
+## Author 
+Rohan Sarin, 
+Senior Analyst, Google
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+
+### Motivation
+
+Sharing what we learn as individuals is the bedrock of collective growth.
 
 ```markdown
 Syntax highlighted code block
