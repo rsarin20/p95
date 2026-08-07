@@ -1,0 +1,7 @@
+# Full verbatim text of 172 paid-subscription newsletters — reconstructable from
+# the mailbox by re-running build/extract.py, and deliberately not republished here.
+corpus/
+build/*.png
+node_modules/
+package-lock.json
+package.json

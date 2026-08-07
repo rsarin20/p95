@@ -1,0 +1,491 @@
+<title>The Stratechery Stack</title>
+<style>
+/* ============ TOKENS: light is the base, complete palette ============ */
+:root{
+  --ground:#eceef1; --panel:#f8f9fb; --panel-2:#e3e6ea; --sunk:#e0e3e7;
+  --ink:#14181d; --ink-2:#525b66; --ink-3:#7b8590;
+  --rule:#ccd2d9; --rule-2:#b6bec7;
+  --accent:#c1650d; --accent-ink:#8f4a06; --accent-soft:#fbeedd; --accent-line:#e6b585;
+  --data:#2f6f7e; --data-soft:#dfeaed;
+  --shadow:0 1px 0 rgba(20,24,29,.04), 0 8px 28px -18px rgba(20,24,29,.28);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0f1318; --panel:#161b22; --panel-2:#1c222b; --sunk:#0b0e12;
+    --ink:#e7ebf0; --ink-2:#96a0ab; --ink-3:#6d7783;
+    --rule:#262d36; --rule-2:#333c47;
+    --accent:#f0912f; --accent-ink:#f6ad5c; --accent-soft:#2b1d0d; --accent-line:#5a3a15;
+    --data:#68b0c0; --data-soft:#14262c;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0f1318; --panel:#161b22; --panel-2:#1c222b; --sunk:#0b0e12;
+  --ink:#e7ebf0; --ink-2:#96a0ab; --ink-3:#6d7783;
+  --rule:#262d36; --rule-2:#333c47;
+  --accent:#f0912f; --accent-ink:#f6ad5c; --accent-soft:#2b1d0d; --accent-line:#5a3a15;
+  --data:#68b0c0; --data-soft:#14262c;
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--serif); font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0; font-weight:600; text-wrap:balance; line-height:1.15}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;text-align:left}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.mono{font-family:var(--mono)}
+.lab{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3)}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* ============ SHELL ============ */
+.wrap{max-width:1360px; margin:0 auto; padding:0 clamp(14px,3vw,34px)}
+header.top{border-bottom:1px solid var(--rule); background:var(--ground); position:sticky; top:0; z-index:40}
+.topin{display:flex; align-items:baseline; gap:18px; padding:14px 0 12px; flex-wrap:wrap}
+.mark{font-family:var(--mono); font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:var(--accent); font-weight:600}
+.mark b{color:var(--ink); font-weight:600}
+.tabs{display:flex; gap:2px; margin-left:auto; flex-wrap:wrap}
+.tab{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);
+  padding:6px 11px; border:1px solid transparent; border-radius:2px}
+.tab:hover{color:var(--ink); background:var(--panel-2)}
+.tab[aria-selected="true"]{color:var(--ink); border-color:var(--rule-2); background:var(--panel)}
+.srch{display:flex; align-items:center; gap:7px; border:1px solid var(--rule-2); border-radius:2px; padding:5px 9px; background:var(--panel)}
+.srch input{font-family:var(--mono); font-size:12px; background:none; border:none; color:var(--ink); width:132px; outline:none}
+.srch input::placeholder{color:var(--ink-3)}
+
+/* ============ HERO ============ */
+.hero{padding:44px 0 30px; border-bottom:1px solid var(--rule); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,320px); gap:clamp(24px,5vw,64px); align-items:end}
+.kicker{display:flex; align-items:center; gap:10px; margin-bottom:16px}
+.kicker .r{height:1px; flex:1; background:var(--rule-2)}
+h1.big{font-size:clamp(34px,5.4vw,58px); letter-spacing:-.022em; font-weight:600}
+h1.big em{font-style:italic; color:var(--accent-ink)}
+.dek{margin-top:16px; font-size:17.5px; line-height:1.5; color:var(--ink-2); max-width:60ch}
+.facts{display:grid; gap:9px; border-left:1px solid var(--rule-2); padding-left:18px}
+.fact{display:flex; justify-content:space-between; gap:12px; align-items:baseline}
+.fact .v{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:17px; color:var(--ink); font-weight:600; white-space:nowrap}
+.fact .k{font-family:var(--mono); font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); max-width:17ch}
+
+/* ============ MAIN GRID ============ */
+main{display:grid; grid-template-columns:minmax(0,332px) minmax(0,1fr); gap:clamp(20px,3.4vw,46px); padding:30px 0 90px; align-items:start}
+@media (max-width:1000px){ main{grid-template-columns:minmax(0,1fr)} .hero{grid-template-columns:minmax(0,1fr)} .rail{position:static !important} }
+
+/* ============ STACK SCHEMATIC (rail) ============ */
+.rail{position:sticky; top:78px}
+.railhead{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px}
+.trace{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent);
+  border:1px solid var(--accent-line); border-radius:2px; padding:5px 9px; background:var(--accent-soft)}
+.trace:hover{background:var(--accent); color:#fff; border-color:var(--accent)}
+.env{border:1px solid var(--rule-2); border-radius:2px; background:var(--panel); padding:10px 12px; display:block; width:100%; position:relative}
+.env+.env{margin-top:0}
+.env:hover{border-color:var(--accent-line)}
+.env[aria-current="true"]{border-color:var(--accent); background:var(--accent-soft)}
+.env .en{font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; color:var(--ink); font-weight:600}
+.env .es{font-family:var(--mono); font-size:10px; color:var(--ink-3); margin-top:2px}
+.envwrap{position:relative; padding-left:16px}
+.envwrap::before{content:""; position:absolute; left:0; top:8px; bottom:8px; width:5px; border:1px solid var(--rule-2); border-right:none}
+
+/* spine */
+.spine{position:relative; padding:14px 0 14px 16px; margin:6px 0}
+.spine::before{content:""; position:absolute; left:5px; top:0; bottom:0; width:1px; background:var(--rule-2)}
+.pulse{position:absolute; left:2px; width:7px; height:7px; border-radius:50%; background:var(--accent); opacity:0; pointer-events:none;
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.layer{display:block; width:100%; position:relative; border:1px solid var(--rule); border-radius:2px; background:var(--panel);
+  padding:9px 12px 9px 13px; margin-bottom:5px; transition:border-color .15s, background .15s}
+.layer::before{content:""; position:absolute; left:-11px; top:50%; width:11px; height:1px; background:var(--rule-2)}
+.layer:hover{border-color:var(--accent-line); background:var(--panel-2)}
+.layer[aria-current="true"]{border-color:var(--accent); background:var(--accent-soft)}
+.layer.lit{border-color:var(--accent); background:var(--accent-soft)}
+.lrow{display:flex; align-items:baseline; gap:9px}
+.lno{font-family:var(--mono); font-size:10px; color:var(--ink-3); font-variant-numeric:tabular-nums; min-width:14px}
+.lname{font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; color:var(--ink); font-weight:600; flex:1}
+.lct{font-family:var(--mono); font-size:10px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.lsub{font-family:var(--mono); font-size:10px; color:var(--ink-3); margin-top:2px; padding-left:23px}
+.railnote{font-family:var(--mono); font-size:10px; line-height:1.6; color:var(--ink-3); margin-top:14px; padding-top:12px; border-top:1px solid var(--rule)}
+
+/* ============ PANEL ============ */
+.panel{min-width:0}
+.phead{border-bottom:1px solid var(--rule); padding-bottom:16px; margin-bottom:22px}
+.ptitle{font-size:clamp(24px,3.1vw,34px); letter-spacing:-.015em; margin-top:8px}
+.pblurb{margin-top:12px; font-size:16.5px; color:var(--ink-2); max-width:62ch; line-height:1.55}
+.crumb{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.crumb button{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent)}
+.crumb button:hover{text-decoration:underline}
+.crumb span{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+
+/* concept rows */
+.clist{display:grid; gap:0; border-top:1px solid var(--rule)}
+.crow{display:grid; grid-template-columns:minmax(0,1fr) 96px 62px; gap:14px; align-items:center;
+  padding:13px 4px; border-bottom:1px solid var(--rule); width:100%}
+.crow>*{min-width:0}
+.crow:hover{background:var(--panel)}
+.crow:hover .cn{color:var(--accent-ink)}
+.cn{display:block; font-size:17.5px; letter-spacing:-.005em}
+.cq{display:block; font-family:var(--mono); font-size:10.5px; color:var(--ink-3); margin-top:3px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%}
+@media (max-width:560px){ .crow{grid-template-columns:minmax(0,1fr) 54px} .crow .bar{display:none} }
+.bar{height:5px; background:var(--data-soft); border-radius:1px; overflow:hidden}
+.bar i{display:block; height:100%; background:var(--data)}
+.cshare{font-family:var(--mono); font-size:11.5px; color:var(--ink-2); font-variant-numeric:tabular-nums; text-align:right}
+
+/* quote blocks */
+.qsec{margin-top:28px}
+.qsec>.lab{padding-bottom:9px; border-bottom:1px solid var(--rule); display:block; margin-bottom:16px}
+.q{border-left:2px solid var(--accent-line); padding:2px 0 2px 18px; margin-bottom:20px}
+.q.thesis{border-left-color:var(--accent)}
+.qt{font-size:18px; line-height:1.5; letter-spacing:-.004em}
+.q.thesis .qt{font-size:20.5px; font-style:italic}
+.src{font-family:var(--mono); font-size:10px; letter-spacing:.05em; color:var(--ink-3); margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.src .ty{border:1px solid var(--rule-2); border-radius:1px; padding:1px 5px; text-transform:uppercase; letter-spacing:.1em; font-size:9px}
+.src .ty.article{border-color:var(--accent-line); color:var(--accent-ink)}
+
+/* links */
+.chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px}
+.chip{font-family:var(--mono); font-size:10.5px; border:1px solid var(--rule-2); border-radius:2px; padding:5px 9px; color:var(--ink-2); background:var(--panel)}
+.chip:hover{border-color:var(--accent); color:var(--accent-ink); background:var(--accent-soft)}
+.chip i{color:var(--data); font-style:normal; font-variant-numeric:tabular-nums}
+
+/* ============ REVISIONS ============ */
+.rev{border:1px solid var(--rule); border-radius:3px; background:var(--panel); padding:20px 22px; margin-bottom:20px; box-shadow:var(--shadow)}
+.rev h3{font-size:22px; letter-spacing:-.012em}
+.revturn{margin-top:10px; color:var(--ink-2); font-size:16px; max-width:70ch; line-height:1.5}
+.steps{margin-top:20px; display:grid; gap:0; position:relative; padding-left:22px}
+.steps::before{content:""; position:absolute; left:4px; top:6px; bottom:6px; width:1px; background:var(--accent-line)}
+.step{position:relative; padding:0 0 20px 0}
+.step:last-child{padding-bottom:0}
+.step::before{content:""; position:absolute; left:-22px; top:6px; width:9px; height:9px; border-radius:50%;
+  background:var(--panel); border:1.5px solid var(--accent-line)}
+.step:last-child::before{background:var(--accent); border-color:var(--accent)}
+.stepd{font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--accent-ink); margin-bottom:5px}
+.stept{font-size:16.5px; line-height:1.5}
+.steps .src{margin-top:7px}
+
+/* ============ BOARD ============ */
+.bwrap{overflow-x:auto; border:1px solid var(--rule); border-radius:3px; background:var(--panel)}
+table.board{border-collapse:collapse; width:100%; min-width:820px}
+.board th,.board td{border-bottom:1px solid var(--rule); border-right:1px solid var(--rule); padding:0; text-align:center}
+.board th:last-child,.board td:last-child{border-right:none}
+.board tr:last-child td{border-bottom:none}
+.board thead th{font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3);
+  padding:11px 7px; vertical-align:bottom; font-weight:600; line-height:1.3; background:var(--panel-2)}
+.board th.fh{text-align:left; padding:11px 13px; font-family:var(--mono); font-size:11.5px; letter-spacing:.03em;
+  text-transform:none; color:var(--ink); background:var(--panel-2); white-space:nowrap}
+.cell{width:100%; padding:13px 7px; font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums;
+  color:var(--ink); text-align:center; display:block}
+.cell:hover{outline:1.5px solid var(--accent); outline-offset:-1.5px}
+.cell.z{color:var(--ink-3)}
+.blegend{display:flex; align-items:center; gap:9px; margin-top:12px; font-family:var(--mono); font-size:10px; color:var(--ink-3)}
+.blegend .sw{display:flex; gap:2px}
+.blegend .sw i{width:17px; height:9px; display:block}
+
+/* ============ INDEX ============ */
+.filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px}
+.ilist{border-top:1px solid var(--rule)}
+.irow{display:grid; grid-template-columns:92px 1fr 74px; gap:14px; padding:12px 4px; border-bottom:1px solid var(--rule); align-items:baseline; width:100%}
+.irow:hover{background:var(--panel)}
+.irow:hover .it{color:var(--accent-ink)}
+.id8{font-family:var(--mono); font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.it{font-size:16.5px; line-height:1.35}
+.ith{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); margin-top:4px; line-height:1.5}
+.iw{font-family:var(--mono); font-size:10px; color:var(--ink-3); text-align:right; font-variant-numeric:tabular-nums}
+.empty{padding:40px 4px; font-family:var(--mono); font-size:12px; color:var(--ink-3)}
+
+/* ============ METHOD ============ */
+.method{max-width:70ch}
+.method h3{font-size:19px; margin-top:26px}
+.method p{margin-top:11px; color:var(--ink-2); font-size:16.5px; line-height:1.6}
+.method ul{margin:11px 0 0; padding-left:20px; color:var(--ink-2); font-size:16.5px; line-height:1.6}
+.method li{margin-bottom:7px}
+.method code{font-family:var(--mono); font-size:13.5px; background:var(--panel-2); padding:1px 5px; border-radius:2px; color:var(--ink)}
+
+footer{border-top:1px solid var(--rule); padding:22px 0 44px; font-family:var(--mono); font-size:10.5px; color:var(--ink-3); line-height:1.7}
+
+@media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important} }
+</style>
+
+<header class="top">
+  <div class="wrap topin">
+    <div class="mark"><b>Stratechery</b> &nbsp;/&nbsp; The Stack</div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+    <div class="srch">
+      <span class="lab" style="letter-spacing:.1em">Find</span>
+      <input id="q" type="search" placeholder="concept, piece, firm…" aria-label="Search concepts and pieces">
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <div class="kicker"><span class="lab">One corpus · one shock · eight layers</span><span class="r"></span></div>
+      <h1 class="big">Ben Thompson spent fourteen months arguing with <em>himself</em>.</h1>
+      <p class="dek" id="herodek"></p>
+    </div>
+    <div class="facts" id="facts"></div>
+  </section>
+
+  <main>
+    <aside class="rail" id="rail"></aside>
+    <section class="panel" id="panel" role="region" aria-live="polite"></section>
+  </main>
+
+  <footer>
+    Built entirely from the Stratechery emails in this inbox — every quotation is verbatim from a dated dispatch, and nothing on this page comes from anywhere else.<br>
+    Layer names, groupings and connective prose are editorial; the counts are measured. See <button class="mono" style="color:var(--accent);text-decoration:underline" onclick="go('method')">Method</button> for exactly what was counted and what was not.
+  </footer>
+</div>
+
+<script type="application/json" id="DATA">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('DATA').textContent);
+const CL = {}; D.clusters.forEach(c=>CL[c.id]=c);
+const CONC = {}; D.concepts.forEach(c=>CONC[c.id]=c);
+const byCluster = id => D.concepts.filter(c=>c.cluster===id);
+const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const fmt = n => n.toLocaleString('en-US');
+const dt = s => { const [y,m,d]=s.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+' '+(+d)+', '+y; };
+
+let view = {tab:'stack', cluster:null, concept:null, firm:null, cell:null, type:'all', query:''};
+
+/* ---------- HERO ---------- */
+document.getElementById('herodek').innerHTML =
+  `Between June 2025 and August 2026 he published <b>${fmt(D.stats.pieces)}</b> dispatches — ${fmt(D.stats.words)} words. `+
+  `They are not ${D.stats.pieces} topics. They are one causal argument about what happens when AI agents start working, `+
+  `and a running record of where that argument forced him to change his mind.`;
+
+document.getElementById('facts').innerHTML = [
+  ['Dispatches read', fmt(D.stats.pieces)],
+  ['Words', fmt(D.stats.words)],
+  ['Article / Update / Interview', `${D.stats.byType.article} / ${D.stats.byType.update} / ${D.stats.byType.interview}`],
+  ['Concepts traced', D.concepts.length],
+  ['Documented mind-changes', D.revisions.length],
+].map(([k,v])=>`<div class="fact"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+
+/* ---------- TABS ---------- */
+const TABS=[['stack','The Stack'],['revisions','Mind-Changes'],['board','The Board'],['index','All 172'],['method','Method']];
+document.getElementById('tabs').innerHTML = TABS.map(([id,l])=>
+  `<button class="tab" role="tab" data-tab="${id}" aria-selected="${view.tab===id}">${l}</button>`).join('');
+document.getElementById('tabs').onclick = e => { const b=e.target.closest('[data-tab]'); if(b) go(b.dataset.tab); };
+function go(tab){ view.tab=tab; if(tab==='stack'&&!view.cluster) view.cluster=D.clusters[0].id; render(); window.scrollTo({top:document.querySelector('main').offsetTop-70,behavior:'smooth'}); }
+
+/* ---------- RAIL: the stack schematic ---------- */
+function rail(){
+  const stack = D.clusters.filter(c=>c.kind==='stack');
+  const envs  = D.clusters.filter(c=>c.kind==='envelope');
+  const envBtn = c => `<button class="env" data-cl="${c.id}" aria-current="${view.cluster===c.id}">
+      <div class="en">${esc(c.name)}</div><div class="es">${esc(c.sub)}</div></button>`;
+  const layer = c => `<button class="layer" data-cl="${c.id}" data-n="${c.n}" aria-current="${view.cluster===c.id}">
+      <div class="lrow"><span class="lno">${String(c.n).padStart(2,'0')}</span>
+      <span class="lname">${esc(c.name)}</span>
+      <span class="lct">${byCluster(c.id).length}</span></div>
+      <div class="lsub">${esc(c.sub)}</div></button>`;
+  return `<div class="railhead"><span class="lab">Causal stack</span>
+      <button class="trace" id="traceBtn">▾ Trace the shock</button></div>
+    <div class="envwrap">${envBtn(envs[0])}
+      <div class="spine" id="spine"><span class="pulse" id="pulse"></span>${stack.map(layer).join('')}</div>
+      ${envBtn(envs[1])}</div>
+    <p class="railnote">Layers 01–06 are a chain: each one is Ben's answer to the pressure created by the layer above it.
+      The two bracketed bands are not steps in that chain — they are the constraints the whole chain runs inside.</p>`;
+}
+
+/* ---------- PANEL VIEWS ---------- */
+function quoteBlock(q, thesis){
+  return `<div class="q${thesis?' thesis':''}"><p class="qt">${esc(q.t)}</p>
+    <div class="src"><span class="ty ${q.ty}">${q.ty}</span><span>${dt(q.d)}</span><span>·</span><span>${esc(q.p)}</span></div></div>`;
+}
+
+function clusterView(c){
+  const cs = byCluster(c.id).slice().sort((a,b)=>b.docs-a.docs);
+  const max = Math.max(...cs.map(x=>x.docs));
+  return `<div class="phead">
+      <div class="crumb"><span>${c.kind==='stack'?'Layer '+String(c.n).padStart(2,'0'):'Envelope'}</span></div>
+      <h2 class="ptitle">${esc(c.name)}</h2>
+      <p class="pblurb">${esc(c.blurb)}</p></div>
+    <span class="lab">${cs.length} concepts · bar shows share of Ben's ${D.stats.benPieces} analytical dispatches</span>
+    <div class="clist" id="clist">${cs.map(x=>{
+      const lead = (x.theses[0]||x.quotes[0]||{}).t || '';
+      return `<button class="crow" data-conc="${x.id}">
+        <span><span class="cn">${esc(x.name)}</span><span class="cq">${esc(lead.slice(0,104))}${lead.length>104?'…':''}</span></span>
+        <span class="bar"><i style="width:${Math.round(100*x.docs/max)}%"></i></span>
+        <span class="cshare">${x.share}%</span></button>`;}).join('')}</div>`;
+}
+
+function conceptView(x){
+  const c = CL[x.cluster];
+  return `<div class="phead">
+      <div class="crumb"><button data-cl="${c.id}">${esc(c.name)}</button><span>/</span><span>Concept</span></div>
+      <h2 class="ptitle">${esc(x.name)}</h2>
+      <p class="pblurb">Appears in <b class="num">${x.docs}</b> of Ben's ${D.stats.benPieces} analytical dispatches
+        (<b class="num">${x.share}%</b>), <b class="num">${fmt(x.hits)}</b> mentions in all.</p></div>
+    ${x.theses.length?`<div class="qsec"><span class="lab">Ben's one-line thesis, in his words</span>
+      ${x.theses.map(q=>quoteBlock(q,true)).join('')}</div>`:''}
+    ${x.quotes.length?`<div class="qsec"><span class="lab">Worked through, in context</span>
+      ${x.quotes.map(q=>quoteBlock(q,false)).join('')}</div>`:''}
+    ${x.links.length?`<div class="qsec"><span class="lab">Travels with — shared dispatches</span>
+      <div class="chips">${x.links.map(l=>`<button class="chip" data-conc="${l.id}">${esc(l.name)} <i>${Math.round(l.w*100)}</i></button>`).join('')}</div>
+      <p class="railnote" style="border:none;margin-top:10px;padding:0">Number is the overlap between the two concepts' dispatch sets.</p></div>`:''}`;
+}
+
+function revisionsView(){
+  return `<div class="phead"><div class="crumb"><span>The differentiator</span></div>
+      <h2 class="ptitle">Where the argument moved</h2>
+      <p class="pblurb">Most archives flatten a writer into a position. This corpus records revision — ${D.revisions.length} places
+        where Ben states plainly that he was wrong, or that new evidence moved him. Read top to bottom: each step is verbatim, and dated.</p></div>
+    ${D.revisions.map(r=>`<article class="rev">
+      <h3>${esc(r.title)}</h3>
+      <p class="revturn">${esc(r.turn)}</p>
+      <div class="steps">${r.steps.map(s=>`<div class="step">
+        <div class="stepd">${dt(s.d)}</div>
+        <p class="stept">${esc(s.t)}</p>
+        <div class="src"><span class="ty ${s.ty}">${s.ty}</span><span>${esc(s.p)}</span></div></div>`).join('')}</div>
+      <div class="chips" style="margin-top:16px"><button class="chip" data-cl="${r.cluster}">Layer: ${esc(CL[r.cluster].name)}</button></div>
+    </article>`).join('')}`;
+}
+
+function boardView(){
+  const cls = D.clusters;
+  const allN = D.board.flatMap(b=>cls.map(c=>b.cells[c.id].n));
+  const max = Math.max(...allN);
+  const sel = view.cell ? D.board.find(b=>b.firm===view.cell[0]).cells[view.cell[1]] : null;
+  return `<div class="phead"><div class="crumb"><span>Cross-section</span></div>
+      <h2 class="ptitle">Which layer is each company's problem?</h2>
+      <p class="pblurb">Every passage where a company and a layer's vocabulary appear together. The shape of a row is a company's
+        strategic exposure; click any cell to read the passages behind the number.</p></div>
+    <div class="bwrap"><table class="board"><thead><tr><th class="fh">Company</th>
+      ${cls.map(c=>`<th>${esc(c.name.replace(/^The /,'')).replace(' &amp; ','<br>&amp; ')}</th>`).join('')}</tr></thead>
+      <tbody>${D.board.map(b=>`<tr><th class="fh">${esc(b.firm)}</th>
+        ${cls.map(c=>{const n=b.cells[c.id].n; const a=n?0.09+0.78*Math.pow(n/max,.62):0;
+          const on = view.cell&&view.cell[0]===b.firm&&view.cell[1]===c.id;
+          return `<td style="background:${n?`color-mix(in srgb, var(--data) ${Math.round(a*100)}%, transparent)`:'transparent'}">
+            <button class="cell${n?'':' z'}" data-firm="${esc(b.firm)}" data-cell="${c.id}"
+              aria-label="${esc(b.firm)}, ${esc(c.name)}: ${n} passages"${on?' style="outline:1.5px solid var(--accent);outline-offset:-1.5px"':''}>${n||'·'}</button></td>`;}).join('')}
+      </tr>`).join('')}</tbody></table></div>
+    <div class="blegend"><span>fewer passages</span><span class="sw">${[0,.2,.4,.6,.8,1].map(t=>
+      `<i style="background:color-mix(in srgb, var(--data) ${Math.round((t?0.09+0.78*Math.pow(t,.62):0)*100)}%, transparent); border:1px solid var(--rule)"></i>`).join('')}</span><span>more</span></div>
+    ${sel?`<div class="qsec"><span class="lab">${esc(view.cell[0])} × ${esc(CL[view.cell[1]].name)} — ${sel.n} passages, showing ${sel.q.length}</span>
+      ${sel.q.map(q=>quoteBlock(q,false)).join('')||'<p class="empty">No passage long enough to quote.</p>'}</div>`
+     :`<p class="railnote" style="border:none;padding:12px 0 0">Select a cell to read its passages.</p>`}`;
+}
+
+function indexView(){
+  const q = view.query.toLowerCase();
+  let ps = D.pieces.slice().sort((a,b)=>b.d.localeCompare(a.d));
+  if(view.type!=='all') ps = ps.filter(p=>p.ty===view.type);
+  if(q) ps = ps.filter(p=>(p.t+' '+p.th).toLowerCase().includes(q));
+  const types=[['all','All'],['article','Articles'],['update','Updates'],['interview','Interviews']];
+  return `<div class="phead"><div class="crumb"><span>Source corpus</span></div>
+      <h2 class="ptitle">Every dispatch, with its thesis</h2>
+      <p class="pblurb">The complete set this app was built from. Each line carries Ben's own one-sentence summary — the line he
+        opened the email with.</p></div>
+    <div class="filters">${types.map(([t,l])=>
+      `<button class="chip" data-type="${t}"${view.type===t?' style="border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)"':''}>${l}</button>`).join('')}</div>
+    <span class="lab">${ps.length} showing${q?` · matching “${esc(view.query)}”`:''}</span>
+    <div class="ilist">${ps.length?ps.map(p=>`<div class="irow">
+      <span class="id8">${p.d}</span>
+      <span><span class="it">${esc(p.t)}</span><span class="ith">${esc(p.th)}</span></span>
+      <span class="iw">${fmt(p.w)}w</span></div>`).join(''):'<p class="empty">Nothing matches that.</p>'}</div>`;
+}
+
+function methodView(){
+  return `<div class="phead"><div class="crumb"><span>Transparency</span></div>
+      <h2 class="ptitle">How this was built</h2></div>
+    <div class="method">
+      <h3>The source, and only the source</h3>
+      <p>Every word quoted here was pulled from the ${fmt(D.stats.pieces)} Stratechery emails in this inbox, dated
+        ${dt(D.stats.first)} to ${dt(D.stats.last)}. No article was fetched from the web, no outside summary was consulted,
+        and no quotation was paraphrased. Email HTML, tracking links and subscription boilerplate were stripped; the prose is untouched.</p>
+      <h3>What the numbers count</h3>
+      <p>Doc-frequency and mention counts are measured over the <b class="num">${D.stats.benPieces}</b> dispatches that are
+        Ben's own analytical writing — <b class="num">${D.stats.byType.article}</b> Articles,
+        <b class="num">${D.stats.byType.update}</b> Updates and the Year in Review. The
+        <b class="num">${D.stats.byType.interview}</b> Interviews are transcribed dialogue with guests, so counting their
+        words as Ben's concepts would inflate every total. They are searchable in <b>All 172</b> but excluded from the statistics.</p>
+      <p>Each concept is matched by a sense-specific pattern, not a bare keyword. That distinction does real work: a naive
+        search for <code>power</code> also catches "bargaining power," <code>space</code> catches "the consumer AI space,"
+        and <code>jobs</code> catches "Steve Jobs." Patterns were tightened until the matches were about the concept.</p>
+      <h3>Quotation and voice</h3>
+      <p>Two kinds of quotation appear, and they are labelled differently. A <b>thesis</b> is the single line Ben opens each
+        email with — reliably his own summary of his own argument. A passage marked <b>in context</b> is a paragraph from the
+        body of the named dispatch. Ben quotes other people at length in his Updates, so a body passage is attributed to the
+        dispatch it appears in, never asserted to be his own sentence. Transcript passages are filtered out; every quote
+        carries its date, its piece and its type so you can always see where it came from.</p>
+      <h3>What is editorial</h3>
+      <p>The measurement is mechanical; the framing is a judgement call, and it is mine, not Ben's:</p>
+      <ul>
+        <li>The eight groupings, their names, and the claim that six of them form a causal chain.</li>
+        <li>Which concepts belong to which layer.</li>
+        <li>The selection of ${D.revisions.length} mind-changes, and the sentence describing each turn.</li>
+      </ul>
+      <p>Ben never published a diagram like the one in the rail. It is an argument about the shape of his argument — offered
+        because the alternative, an undifferentiated list of ${fmt(D.stats.pieces)} newsletters, hides the thing that makes the
+        corpus worth reading: it is one connected system of thought, and it visibly changes under evidence.</p>
+      <h3>Typography as provenance</h3>
+      <p>One rule runs through the whole page: <b>anything set in serif is Ben's</b>; anything in monospace is the app talking —
+        labels, counts, dates, navigation. You can tell whose words you are reading without checking a citation.</p>
+    </div>`;
+}
+
+/* ---------- RENDER ---------- */
+function render(){
+  document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===view.tab));
+  const railEl = document.getElementById('rail');
+  railEl.style.display = (view.tab==='stack') ? '' : 'none';
+  document.querySelector('main').style.gridTemplateColumns = (view.tab==='stack') ? '' : 'minmax(0,1fr)';
+  if(view.tab==='stack') railEl.innerHTML = rail();
+
+  const p = document.getElementById('panel');
+  if(view.tab==='stack')      p.innerHTML = view.concept ? conceptView(CONC[view.concept]) : clusterView(CL[view.cluster]);
+  else if(view.tab==='revisions') p.innerHTML = revisionsView();
+  else if(view.tab==='board')     p.innerHTML = boardView();
+  else if(view.tab==='index')     p.innerHTML = indexView();
+  else                            p.innerHTML = methodView();
+}
+
+/* ---------- EVENTS ---------- */
+document.addEventListener('click', e=>{
+  const cl=e.target.closest('[data-cl]'); if(cl){ view.tab='stack'; view.cluster=cl.dataset.cl; view.concept=null; render(); return; }
+  const cc=e.target.closest('[data-conc]'); if(cc){ view.tab='stack'; view.concept=cc.dataset.conc; view.cluster=CONC[cc.dataset.conc].cluster; render(); return; }
+  const cell=e.target.closest('[data-cell]'); if(cell){ view.cell=[cell.dataset.firm, cell.dataset.cell]; render(); return; }
+  const ty=e.target.closest('[data-type]'); if(ty){ view.type=ty.dataset.type; render(); return; }
+  if(e.target.closest('#traceBtn')) trace();
+});
+
+const qEl=document.getElementById('q');
+qEl.addEventListener('input', ()=>{
+  view.query=qEl.value.trim();
+  if(!view.query) { render(); return; }
+  const q=view.query.toLowerCase();
+  const hit = D.concepts.find(c=>c.name.toLowerCase().includes(q));
+  const firm = D.board.find(b=>b.firm.toLowerCase()===q);
+  if(firm){ view.tab='board'; view.cell=null; render(); return; }
+  if(hit && q.length>2){ view.tab='stack'; view.concept=hit.id; view.cluster=hit.cluster; render(); return; }
+  view.tab='index'; render();
+});
+
+/* ---------- the one orchestrated motion: shock propagation ---------- */
+let tracing=false;
+function trace(){
+  if(tracing) return; tracing=true;
+  const spine=document.getElementById('spine'), pulse=document.getElementById('pulse');
+  const layers=[...spine.querySelectorAll('.layer')];
+  layers.forEach(l=>l.classList.remove('lit'));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ layers.forEach(l=>l.classList.add('lit')); tracing=false; return; }
+  pulse.style.transition='none'; pulse.style.opacity='1';
+  layers.forEach((l,i)=>setTimeout(()=>{
+    const top=l.offsetTop + l.offsetHeight/2 - 3;
+    pulse.style.transition='top .34s cubic-bezier(.4,0,.2,1)';
+    pulse.style.top=top+'px';
+    l.classList.add('lit');
+    if(i===layers.length-1) setTimeout(()=>{ pulse.style.opacity='0'; tracing=false; }, 900);
+  }, 60 + i*360));
+}
+
+view.cluster = D.clusters[0].id;
+render();
+</script>
