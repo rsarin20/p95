@@ -1,0 +1,16 @@
+name = "pango"
+main = "index.js"
+compatibility_date = "2025-09-01"
+
+# The game itself is static; the Worker only handles /api/*.
+[assets]
+directory = "../public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pango"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+
+# Set the signing secret out of band:
+#   npx wrangler secret put PANGO_SECRET

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#EDE4D3">
+<title>PANGO — NO SIGNAL</title>
+<meta name="description" content="The signal died. Keep running. An endless runner for when the internet isn't.">
+<meta property="og:title" content="PANGO — NO SIGNAL">
+<meta property="og:description" content="The signal died. Keep running.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23EDE4D3'/%3E%3Cpath d='M16 5a11 11 0 1 0 11 11' fill='none' stroke='%23161F38' stroke-width='5'/%3E%3Cpath d='M16 10a6 6 0 1 0 6 6' fill='none' stroke='%23FF3D6E' stroke-width='4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<canvas id="stage" aria-label="PANGO game"></canvas>
+
+<!-- ══ HUD ══ -->
+<div id="hud" class="hidden" aria-hidden="true">
+  <div class="hud-l">
+    <div id="bars" class="bars">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div id="zone" class="zone">DEADZONE</div>
+  </div>
+  <div class="hud-r">
+    <div id="score" class="score">0</div>
+    <div id="best" class="best">BEST 0</div>
+  </div>
+</div>
+
+<!-- ══ NAME GATE ══ -->
+<section id="gate" class="veil hidden">
+  <div class="sheet">
+    <p class="kicker">TRANSMISSION LOG</p>
+    <h2 class="ask">WHO'S<br>RUNNING?</h2>
+    <form id="nameForm" autocomplete="off">
+      <div class="field">
+        <span class="caret">&gt;</span>
+        <input id="nameInput" maxlength="12" spellcheck="false" autocapitalize="characters"
+               placeholder="CALLSIGN" aria-label="Your callsign">
+      </div>
+      <p class="fine" id="gateNote">12 CHARACTERS. STORED ON THIS DEVICE. ASKED ONCE.</p>
+      <button class="btn" type="submit">ENTER THE DEADZONE</button>
+    </form>
+  </div>
+</section>
+
+<!-- ══ TITLE ══ -->
+<section id="title" class="veil hidden">
+  <div class="poster">
+    <p class="kicker">EST. ERROR 0 &nbsp;·&nbsp; NO CONNECTION</p>
+    <h1 class="wordmark">PANGO</h1>
+    <p class="tagline">THE SIGNAL DIED. KEEP RUNNING.</p>
+    <div class="keys">
+      <span><b>SPACE</b> JUMP</span>
+      <span><b>↓</b> CURL</span>
+      <span><b>M</b> SOUND</span>
+    </div>
+    <button class="btn big" id="startBtn">▶ RUN</button>
+    <p class="ticker" id="ticker">&nbsp;</p>
+    <button class="link" id="boardBtn">SIGNAL LOG →</button>
+  </div>
+</section>
+
+<!-- ══ GAME OVER ══ -->
+<section id="over" class="veil hidden">
+  <div class="sheet receipt">
+    <p class="kicker" id="overKicker">SIGNAL LOST</p>
+    <div class="bigscore"><span id="finalScore">0</span><em>M</em></div>
+    <dl class="stats">
+      <div><dt>BEST</dt><dd id="ovBest">0</dd></div>
+      <div><dt>ZONE</dt><dd id="ovZone">DEADZONE</dd></div>
+      <div><dt>RANK</dt><dd id="ovRank">—</dd></div>
+    </dl>
+    <div class="mini" id="mini"></div>
+    <div class="row">
+      <button class="btn" id="againBtn">RUN AGAIN <em>(SPACE)</em></button>
+      <button class="btn ghost" id="overBoardBtn">SIGNAL LOG</button>
+    </div>
+    <button class="link" id="shareBtn">COPY BRAG</button>
+  </div>
+</section>
+
+<!-- ══ LEADERBOARD ══ -->
+<section id="board" class="veil hidden">
+  <div class="sheet wide">
+    <button class="x" id="closeBoard" aria-label="Close">✕</button>
+    <p class="kicker">SIGNAL LOG</p>
+    <h2 class="ask sm">GLOBAL<br>LEADERBOARD</h2>
+    <div class="tabs">
+      <button class="tab on" data-scope="all">ALL TIME</button>
+      <button class="tab" data-scope="today">TODAY</button>
+    </div>
+    <ol class="list" id="list"><li class="empty">TUNING IN…</li></ol>
+    <div id="youRow" class="you hidden"></div>
+    <p class="fine" id="boardNote"></p>
+  </div>
+</section>
+
+<div id="grain" aria-hidden="true"></div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

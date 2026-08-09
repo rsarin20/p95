@@ -1,0 +1,253 @@
+/* ════════════════════════════════════════════════════════════
+   PANGO — NO SIGNAL
+   Design system: two-ink risograph print.
+   Every colour comes from the live game palette (--paper/--ink/--duo),
+   which the canvas rewrites as you cross into a new zone. The UI and
+   the world are printed with the same two inks, always.
+   ════════════════════════════════════════════════════════════ */
+
+:root{
+  --paper:#EDE4D3;
+  --ink:#161F38;
+  --duo:#FF3D6E;
+  --reg: 2px;                     /* misregistration distance */
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Roboto Mono", "DejaVu Sans Mono", monospace;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+html,body{
+  height:100%;
+  overflow:hidden;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--mono);
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  overscroll-behavior:none;
+  transition:background-color .5s linear, color .5s linear;
+}
+
+#stage{
+  position:fixed; inset:0;
+  width:100%; height:100%;
+  display:block;
+}
+
+/* ── print grain, over everything ───────────────────────── */
+#grain{
+  position:fixed; inset:-20%;
+  pointer-events:none;
+  z-index:90;
+  opacity:.28;
+  mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  animation:shift 1.4s steps(2,end) infinite;
+}
+@keyframes shift{ 0%{transform:translate(0,0)} 50%{transform:translate(-9px,6px)} 100%{transform:translate(5px,-7px)} }
+
+.hidden{ display:none !important; }
+
+/* ══ HUD ═════════════════════════════════════════════════ */
+#hud{
+  position:fixed; inset:0 0 auto 0;
+  z-index:40;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding:max(18px,env(safe-area-inset-top)) 20px 0;
+  pointer-events:none;
+  font-size:11px; letter-spacing:.22em;
+}
+.hud-l{ display:flex; flex-direction:column; gap:7px; }
+.hud-r{ text-align:right; }
+
+/* signal bars — the meter is the game's whole economy */
+.bars{ display:flex; align-items:flex-end; gap:3px; height:22px; }
+.bars i{
+  width:5px; background:var(--ink); opacity:.16;
+  transition:opacity .09s linear, background-color .2s linear;
+}
+.bars i:nth-child(1){height:26%} .bars i:nth-child(2){height:37%}
+.bars i:nth-child(3){height:48%} .bars i:nth-child(4){height:59%}
+.bars i:nth-child(5){height:70%} .bars i:nth-child(6){height:81%}
+.bars i:nth-child(7){height:90%} .bars i:nth-child(8){height:100%}
+.bars i.lit{ opacity:1; }
+#hud.online .bars i{ background:var(--duo); opacity:1; animation:pulse .28s steps(2,end) infinite; }
+@keyframes pulse{ 50%{ opacity:.35 } }
+
+.zone{ opacity:.55; font-size:10px; }
+#hud.online .zone{ opacity:1; color:var(--duo); }
+.zone.flash{ animation:zflash .8s ease-out; }
+@keyframes zflash{ 0%{ opacity:1; transform:translateX(-14px) } 100%{ opacity:.55; transform:none } }
+
+.score{
+  font-size:34px; font-weight:700; letter-spacing:.06em;
+  line-height:1; font-variant-numeric:tabular-nums;
+  text-shadow:var(--reg) calc(var(--reg) * -.6) 0 var(--duo);
+}
+.score.tick{ animation:tick .3s ease-out; }
+@keyframes tick{ 0%{ transform:scale(1.18) } 100%{ transform:none } }
+.best{ font-size:10px; opacity:.5; margin-top:5px; }
+
+/* ══ OVERLAYS ════════════════════════════════════════════ */
+.veil{
+  position:fixed; inset:0; z-index:60;
+  display:flex; align-items:center; justify-content:center;
+  padding:22px;
+  background:color-mix(in srgb, var(--paper) 80%, transparent);
+  backdrop-filter:blur(3px);
+  animation:in .18s ease-out;
+}
+@keyframes in{ from{ opacity:0 } }
+
+/* the printed sheet: hard 2px plate + offset second ink */
+.sheet, .poster{
+  position:relative;
+  width:min(430px, 100%);
+  background:var(--paper);
+  border:2px solid var(--ink);
+  box-shadow:7px 7px 0 var(--duo), 7px 7px 0 1px var(--ink);
+  padding:30px 28px 26px;
+  text-align:center;
+}
+.sheet.wide{ width:min(560px,100%); }
+.poster{ border:0; box-shadow:none; background:transparent; }
+
+.kicker{
+  font-size:10px; letter-spacing:.4em; opacity:.6;
+  margin-bottom:16px;
+}
+.ask{
+  font-size:clamp(30px,8vw,44px); line-height:.92; font-weight:700;
+  letter-spacing:-.01em; margin-bottom:22px;
+  text-shadow:3px -2px 0 var(--duo);
+}
+.ask.sm{ font-size:clamp(22px,5.5vw,30px); margin-bottom:18px; }
+
+/* the title is a poster printed over the running world, not a scrim */
+#title{ background:color-mix(in srgb, var(--paper) 55%, transparent); backdrop-filter:none; }
+
+/* ── title poster ── */
+.wordmark{
+  font-size:clamp(64px,19vw,140px);
+  line-height:.8; font-weight:700; letter-spacing:-.045em;
+  text-shadow:6px -5px 0 var(--duo);
+  margin:2px 0 10px;
+}
+.tagline{ font-size:11px; letter-spacing:.34em; opacity:.72; margin-bottom:26px; }
+.keys{ display:flex; gap:22px; justify-content:center; font-size:10px; letter-spacing:.2em; opacity:.55; margin-bottom:22px; }
+.keys b{ border:1.5px solid var(--ink); padding:3px 7px; margin-right:7px; font-weight:400; }
+.ticker{ font-size:10px; letter-spacing:.16em; opacity:.55; margin-top:20px; min-height:14px; }
+
+/* ── form ── */
+.field{
+  display:flex; align-items:center; gap:10px;
+  border:2px solid var(--ink); padding:12px 14px;
+  background:var(--paper);
+  box-shadow:4px 4px 0 var(--duo);
+  margin-bottom:12px;
+}
+.caret{ opacity:.45; }
+#nameInput{
+  flex:1; background:transparent; border:0; outline:0;
+  font-family:var(--mono); font-size:19px; font-weight:700;
+  letter-spacing:.16em; color:var(--ink); text-transform:uppercase;
+  min-width:0;
+}
+#nameInput::placeholder{ color:var(--ink); opacity:.24; letter-spacing:.16em; }
+.fine{ font-size:9px; letter-spacing:.18em; opacity:.45; margin-bottom:18px; line-height:1.7; }
+.fine.warn{ opacity:1; color:var(--duo); }
+
+/* ── buttons ── */
+.btn{
+  display:block; width:100%;
+  font-family:var(--mono); font-size:12px; letter-spacing:.24em; font-weight:700;
+  padding:14px 16px; cursor:pointer;
+  background:var(--ink); color:var(--paper); border:2px solid var(--ink);
+  box-shadow:4px 4px 0 var(--duo);
+  transition:transform .06s, box-shadow .06s;
+}
+.btn em{ font-style:normal; opacity:.5; font-weight:400; }
+.btn:active{ transform:translate(4px,4px); box-shadow:0 0 0 var(--duo); }
+.btn.big{ padding:17px; font-size:14px; }
+.btn.ghost{ background:transparent; color:var(--ink); box-shadow:4px 4px 0 var(--ink); }
+.btn:disabled{ opacity:.4; cursor:default; }
+.link{
+  background:none; border:0; cursor:pointer; margin-top:16px;
+  font-family:var(--mono); font-size:10px; letter-spacing:.26em;
+  color:var(--ink); opacity:.55; text-decoration:underline; text-underline-offset:4px;
+}
+.link:hover{ opacity:1; }
+.row{ display:flex; gap:10px; }
+.row .btn{ flex:1; }
+.x{
+  position:absolute; top:8px; right:10px;
+  background:none; border:0; cursor:pointer;
+  font-family:var(--mono); font-size:15px; color:var(--ink); opacity:.5; padding:6px;
+}
+.x:hover{ opacity:1; }
+
+/* ── game over receipt ── */
+.receipt .bigscore{
+  font-size:clamp(56px,15vw,84px); line-height:.86; font-weight:700;
+  letter-spacing:-.03em; font-variant-numeric:tabular-nums;
+  text-shadow:5px -4px 0 var(--duo);
+  margin-bottom:20px;
+}
+.receipt .bigscore em{ font-style:normal; font-size:.26em; letter-spacing:.2em; opacity:.5; margin-left:8px; }
+.stats{
+  display:flex; justify-content:space-between; gap:8px;
+  border-top:1.5px dashed var(--ink); border-bottom:1.5px dashed var(--ink);
+  padding:12px 0; margin-bottom:14px;
+}
+.stats div{ flex:1; }
+.stats dt{ font-size:9px; letter-spacing:.2em; opacity:.45; margin-bottom:5px; }
+.stats dd{ font-size:13px; font-weight:700; letter-spacing:.06em; }
+
+/* mini board on the game-over card */
+.mini{ margin-bottom:18px; font-size:10px; letter-spacing:.1em; text-align:left; }
+.mini .r{ display:flex; gap:8px; padding:3px 0; opacity:.7; }
+.mini .r.me{ opacity:1; color:var(--duo); font-weight:700; }
+.mini .n{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mini .s{ font-variant-numeric:tabular-nums; }
+
+/* ══ LEADERBOARD ════════════════════════════════════════ */
+.tabs{ display:flex; gap:0; margin-bottom:14px; border:2px solid var(--ink); }
+.tab{
+  flex:1; padding:9px; cursor:pointer;
+  font-family:var(--mono); font-size:10px; letter-spacing:.22em;
+  background:transparent; color:var(--ink); border:0;
+}
+.tab.on{ background:var(--ink); color:var(--paper); }
+
+.list{ list-style:none; max-height:46vh; overflow-y:auto; text-align:left; margin:0 -4px; }
+.list li{
+  display:flex; align-items:baseline; gap:10px;
+  padding:8px 4px; font-size:11px; letter-spacing:.08em;
+  border-bottom:1px dotted color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.list li.empty{ justify-content:center; opacity:.45; border:0; padding:26px 0; letter-spacing:.24em; }
+.rank{ width:34px; opacity:.45; font-variant-numeric:tabular-nums; flex:none; }
+.who{ font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:11ch; }
+.city{ flex:1; opacity:.45; font-size:9.5px; letter-spacing:.12em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pts{ font-weight:700; font-variant-numeric:tabular-nums; flex:none; }
+.list li.me{ color:var(--duo); }
+.list li.me .rank, .list li.me .city{ opacity:.85; }
+.list li.top .rank{ color:var(--duo); opacity:1; font-weight:700; }
+
+.you{
+  display:flex; align-items:baseline; gap:10px;
+  margin-top:10px; padding:9px 6px;
+  border:2px solid var(--duo); font-size:11px; letter-spacing:.08em;
+}
+.list::-webkit-scrollbar{ width:5px; }
+.list::-webkit-scrollbar-thumb{ background:color-mix(in srgb, var(--ink) 40%, transparent); }
+
+@media (max-width:420px){
+  .sheet,.poster{ padding:24px 20px 22px; }
+  .keys{ gap:14px; }
+}
+@media (prefers-reduced-motion:reduce){
+  #grain{ animation:none; }
+  *{ animation-duration:.01ms !important; }
+}
