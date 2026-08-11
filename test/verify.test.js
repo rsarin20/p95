@@ -14,7 +14,7 @@ import {
   COLLIDE_HALF_W,
   COLLIDE_GRACE,
 } from '../src/core/config.js';
-import { verify } from '../server/verify.js';
+import { verify } from '../lib/verify.js';
 
 let failures = 0;
 function test(name, fn) {

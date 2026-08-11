@@ -414,6 +414,9 @@ function setScope(scope) {
   renderBoard(dom.boardBody, board, {
     empty: scope === 'city' ? 'NOBODY HERE YET. TAKE IT.' : 'NO RUNS YET. BE FIRST.',
     showPlace: scope !== 'city',
+    // Deployed with no store attached, the board is real but does not survive.
+    // Better to say so than to let people chase a rank that will evaporate.
+    footer: boardData.durable === false ? 'TEMPORARY BOARD · SCORES RESET' : null,
   });
 }
 

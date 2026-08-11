@@ -9,7 +9,39 @@ npm test
 ```
 
 No build step, no dependencies, no bundler. The game is plain ES modules and a
-canvas; the server is Node's `http` module and a JSON file.
+canvas.
+
+## Deploying
+
+The repo is a zero-config Vercel deployment: static files at the root, two
+serverless functions in `api/`. From the project directory:
+
+```
+npx vercel            # preview
+npx vercel --prod     # live
+```
+
+Or import the repo at [vercel.com/new](https://vercel.com/new) — no build
+command, no output directory, no environment variables. It will deploy and be
+playable immediately.
+
+### Making the leaderboard durable
+
+Everything works on that first deploy, but with no store attached the
+leaderboard lives in memory and resets whenever the function goes cold. The
+board says so on screen rather than pretending otherwise.
+
+To make it permanent, attach any Redis with an Upstash-compatible REST API —
+in the Vercel dashboard, *Storage → Upstash for Redis*, which has a free tier
+and sets the variables for you. Redeploy and it is durable. No code change and
+no package to install:
+
+| variable | |
+|---|---|
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | set by the Vercel integration |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | if connecting Upstash directly |
+
+Locally, neither is needed — scores persist to `data/leaderboard.json`.
 
 ---
 
@@ -141,8 +173,12 @@ src/render/    canvas drawing — reads the sim, never writes to it
   jerboa.js      the character: a pose model and a procedural silhouette
   scene.js       sky, stars, moon, dunes, horizon, dust
 src/net/       localStorage and the score queue
-server/        two API routes and a static file handler, no dependencies
+api/           the two serverless functions Vercel runs
+lib/           shared by the functions and the dev server
   verify.js      replay-based score verification
+  board.js       picks a storage backend; redis, file, or memory
+  http.js        the route handlers themselves
+server/         local dev server — serves the static files and the same routes
 test/
 ```
 

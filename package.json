@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test": "node test/sim.test.js && node test/verify.test.js"
+    "test": "node test/sim.test.js && node test/verify.test.js && node test/redis-board.test.js && node test/api.test.js"
   },
   "license": "MIT"
 }

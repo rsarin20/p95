@@ -83,6 +83,9 @@ export function renderBoard(host, board, opts = {}) {
   if (!you) {
     host.appendChild(noteEl('FINISH A RUN TO TAKE A PLACE'));
   }
+  if (opts.footer) {
+    host.appendChild(noteEl(opts.footer));
+  }
 }
 
 /**

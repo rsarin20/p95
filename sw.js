@@ -7,12 +7,13 @@
 // The API is deliberately never cached. A stale leaderboard is worse than an
 // absent one, and score submission has its own retry queue in the page.
 
-const CACHE = 'moonhop-v1';
+const CACHE = 'moonhop-v2';
 
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './icon.svg',
   './src/style.css',
   './src/main.js',
   './src/core/config.js',
