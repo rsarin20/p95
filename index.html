@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#04050b" />
+    <meta name="description" content="MOONHOP — one button, one desert, one night." />
+    <title>MOONHOP</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <!-- Score, top left. Leaderboard, top right. That is the entire HUD. -->
+    <div id="hud" class="hud">
+      <div id="score" class="score">0</div>
+      <button id="lbBtn" class="lb-btn" type="button">LEADERBOARD</button>
+    </div>
+
+    <div id="title" class="title">
+      <div class="title-word">MOONHOP</div>
+    </div>
+
+    <!-- Shown until the player's first ever jump, then never again. -->
+    <div id="hint" class="hint">SPACE / TAP TO JUMP</div>
+
+    <div id="death" class="death">
+      <div id="deathScore" class="death-score">0</div>
+      <div id="deathNote" class="death-note"></div>
+      <div id="deathRank" class="death-rank"></div>
+      <div class="death-again">TAP TO RUN AGAIN</div>
+    </div>
+
+    <!-- Full-screen panels. Not modals, not cards — the same night, closer in. -->
+    <section id="sheet" class="sheet" aria-hidden="true">
+      <div id="nameView" class="view">
+        <div class="ask">WHAT SHOULD WE CALL YOU?</div>
+        <input
+          id="nameInput"
+          class="name-input"
+          type="text"
+          maxlength="14"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="moonrunner"
+          aria-label="Choose a name"
+        />
+        <div id="nameError" class="name-error"></div>
+        <button id="nameEnter" class="enter" type="button">ENTER</button>
+      </div>
+
+      <div id="boardView" class="view">
+        <div class="board-head">
+          <button id="scopeWorld" class="scope is-on" type="button">WORLD</button>
+          <button id="scopeCity" class="scope" type="button">LONDON</button>
+        </div>
+        <div id="boardBody" class="board"></div>
+        <div class="board-foot">
+          <button id="changeName" class="quiet" type="button">CHANGE NAME</button>
+          <button id="closeBoard" class="quiet" type="button">BACK</button>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

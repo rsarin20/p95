@@ -1,0 +1,5 @@
+node_modules/
+# The leaderboard's on-disk store. Runtime state, not source.
+data/
+*.log
+.DS_Store

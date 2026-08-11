@@ -1,0 +1,442 @@
+/*
+  MOONHOP.
+
+  Almost no interface. Everything here is either the score, the way back to the
+  leaderboard, or a single line of instruction that appears once and then never
+  again. Nothing is a card, nothing is a panel, nothing has a border. The type
+  sits directly on the night.
+*/
+
+:root {
+  --ink: #04050b;
+  --accent: #dceaff;
+  --dim: rgba(220, 234, 255, 0.42);
+  --dimmer: rgba(220, 234, 255, 0.24);
+  --you: #ffd9a8;
+  --ui: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --pad: clamp(14px, 2.6vmin, 30px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--accent);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- HUD ------------------------------------------------------------------ */
+
+.hud {
+  position: fixed;
+  top: calc(var(--pad) + env(safe-area-inset-top));
+  left: calc(var(--pad) + env(safe-area-inset-left));
+  right: calc(var(--pad) + env(safe-area-inset-right));
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.score {
+  font-size: clamp(20px, 3.4vmin, 34px);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  opacity: 0.88;
+  text-shadow: 0 0 18px rgba(220, 234, 255, 0.28);
+  transition: opacity 0.4s ease;
+}
+
+.score.is-quiet {
+  opacity: 0.34;
+}
+
+.lb-btn {
+  pointer-events: auto;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: clamp(9px, 1.35vmin, 12px);
+  letter-spacing: 0.24em;
+  color: var(--dim);
+  transition: color 0.25s ease;
+}
+
+.lb-btn:hover,
+.lb-btn:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+/* --- title, hint, death --------------------------------------------------- */
+
+.title {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 34%;
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.title-word {
+  font-size: clamp(28px, 6.2vmin, 62px);
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  opacity: 0.9;
+  text-shadow: 0 0 32px rgba(220, 234, 255, 0.3);
+}
+
+.hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(9vmin + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: clamp(9px, 1.4vmin, 12px);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--dimmer);
+  z-index: 2;
+  pointer-events: none;
+  animation: breathe 3.4s ease-in-out infinite;
+  transition: opacity 0.45s ease;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.death {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.death.is-on {
+  opacity: 1;
+}
+
+.death-score {
+  font-size: clamp(34px, 7.4vmin, 76px);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 30px rgba(220, 234, 255, 0.26);
+}
+
+.death-note {
+  margin-top: 1.1em;
+  font-size: clamp(9px, 1.4vmin, 12px);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--you);
+  min-height: 1.2em;
+}
+
+.death-rank {
+  margin-top: 0.9em;
+  font-size: clamp(9px, 1.35vmin, 12px);
+  letter-spacing: 0.16em;
+  color: var(--dim);
+  min-height: 1.2em;
+}
+
+.death-again {
+  margin-top: 3.4em;
+  font-size: clamp(9px, 1.4vmin, 12px);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--dimmer);
+  animation: breathe 3.4s ease-in-out infinite;
+}
+
+/* --- full-screen views ---------------------------------------------------- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--pad) * 1.5);
+  background: #02030800;
+  backdrop-filter: blur(2px);
+  animation: fade 0.35s ease forwards;
+}
+
+.sheet.is-on {
+  display: flex;
+}
+
+@keyframes fade {
+  from {
+    background: rgba(2, 3, 8, 0);
+  }
+  to {
+    background: rgba(2, 3, 8, 0.93);
+  }
+}
+
+.view {
+  display: none;
+  width: 100%;
+  max-width: 460px;
+  flex-direction: column;
+  align-items: center;
+}
+
+.view.is-on {
+  display: flex;
+}
+
+/* name */
+
+.ask {
+  font-size: clamp(10px, 1.5vmin, 13px);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--dim);
+  text-align: center;
+}
+
+.name-input {
+  margin-top: 2.4em;
+  width: 100%;
+  max-width: 300px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(220, 234, 255, 0.18);
+  padding: 0.5em 0.2em;
+  text-align: center;
+  font: inherit;
+  font-size: clamp(20px, 3.6vmin, 30px);
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  caret-color: var(--accent);
+}
+
+.name-input::placeholder {
+  color: rgba(220, 234, 255, 0.16);
+}
+
+.name-input:focus {
+  outline: none;
+  border-bottom-color: rgba(220, 234, 255, 0.5);
+}
+
+.name-error {
+  margin-top: 1em;
+  min-height: 1.2em;
+  font-size: clamp(9px, 1.3vmin, 11px);
+  letter-spacing: 0.16em;
+  color: rgba(255, 160, 140, 0.8);
+}
+
+.enter,
+.quiet,
+.scope {
+  appearance: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--dim);
+  transition: color 0.25s ease;
+}
+
+.enter {
+  margin-top: 1.6em;
+  padding: 0.6em 0;
+  font-size: clamp(10px, 1.5vmin, 13px);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--accent);
+}
+
+.enter:hover,
+.quiet:hover,
+.scope:hover,
+.enter:focus-visible,
+.quiet:focus-visible,
+.scope:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+/* leaderboard */
+
+.board-head {
+  display: flex;
+  gap: 2.4em;
+  margin-bottom: 2.6em;
+}
+
+.scope {
+  font-size: clamp(10px, 1.5vmin, 13px);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  padding-bottom: 0.5em;
+  color: var(--dimmer);
+}
+
+.scope.is-on {
+  color: var(--accent);
+}
+
+.board {
+  width: 100%;
+  font-size: clamp(11px, 1.7vmin, 14px);
+  line-height: 1;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2.6em 1fr auto 1fr;
+  gap: 0.9em;
+  align-items: baseline;
+  padding: 0.72em 0;
+  color: var(--dim);
+}
+
+.row .rank {
+  font-variant-numeric: tabular-nums;
+  color: var(--dimmer);
+}
+
+.row .who {
+  letter-spacing: 0.1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row .pts {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+
+.row .place {
+  text-align: right;
+  color: var(--dimmer);
+  font-size: 0.86em;
+  letter-spacing: 0.1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Your own line gets rules above and below and nothing else. */
+.row.is-you {
+  color: var(--you);
+  border-top: 1px solid rgba(255, 217, 168, 0.22);
+  border-bottom: 1px solid rgba(255, 217, 168, 0.22);
+}
+
+.row.is-you .rank,
+.row.is-you .place {
+  color: rgba(255, 217, 168, 0.6);
+}
+
+.gap {
+  height: 1.6em;
+  position: relative;
+}
+
+.gap::after {
+  content: "···";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--dimmer);
+  letter-spacing: 0.3em;
+  font-size: 0.85em;
+}
+
+.board-note {
+  margin-top: 2em;
+  text-align: center;
+  font-size: clamp(9px, 1.3vmin, 11px);
+  letter-spacing: 0.18em;
+  color: var(--dimmer);
+  line-height: 1.7;
+}
+
+.board-foot {
+  margin-top: 3em;
+  display: flex;
+  gap: 2.6em;
+}
+
+.quiet {
+  font-size: clamp(9px, 1.35vmin, 11px);
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+}
+
+/*
+  Also cancels the animation. A keyframe animating `opacity` keeps winning over
+  a plain `opacity: 0`, so the retired hint would go on breathing away in the
+  corner forever — visibility is what actually settles it.
+*/
+.is-hidden {
+  opacity: 0 !important;
+  animation: none !important;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint,
+  .death-again {
+    animation: none;
+    opacity: 0.7;
+  }
+}
