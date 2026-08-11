@@ -1,12 +1,18 @@
 const TIMEOUT_MS = 6000;
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
-    /** Network-level failure — the caller should fall back to local-only play. */
-    this.offline = status === 0;
+    this.code = code;
+    /**
+     * The caller should fall back to local-only play. True for network-level
+     * failures, and for a deploy that simply has no leaderboard store wired up
+     * — that isn't an error the player can do anything about, so it should not
+     * stand between them and the game.
+     */
+    this.offline = status === 0 || code === 'no-store';
   }
 }
 
@@ -28,7 +34,9 @@ async function request(path, { method = 'GET', body, token } = {}) {
     const text = await res.text();
     const data = text ? safeParse(text) : {};
 
-    if (!res.ok) throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status);
+    if (!res.ok) {
+      throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status, data?.code);
+    }
     return data;
   } catch (err) {
     if (err instanceof ApiError) throw err;

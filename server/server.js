@@ -4,10 +4,11 @@ import { stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Store, sanitizeCallsign } from './store.js';
-import { clientIp, lookup } from './geo.js';
-import { rateLimiter } from './rate-limit.js';
-import { maxPlausibleScore } from './scoring.js';
+import { clientIp } from './geo.js';
+import { createApi, defaultLimits, kvLimits } from './handlers.js';
+import { kvFromEnv } from './kv.js';
+import { KvStore } from './kv-store.js';
+import { Store } from './store.js';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const PUBLIC_DIR = join(ROOT, 'public');
@@ -28,19 +29,18 @@ const MIME = {
   '.webmanifest': 'application/manifest+json'
 };
 
-const store = await new Store(DATA_FILE).load();
-const limitSession = rateLimiter({ windowMs: 60_000, max: 12 });
-const limitScore = rateLimiter({ windowMs: 60_000, max: 40 });
-const limitBoard = rateLimiter({ windowMs: 60_000, max: 120 });
+// Redis if it's configured, otherwise the local JSON file. Same API either way.
+const kv = kvFromEnv();
+const store = kv ? new KvStore(kv) : await new Store(DATA_FILE).load();
+const api = createApi({ store, limits: kv ? kvLimits(kv) : defaultLimits() });
 
 function send(res, status, body, headers = {}) {
-  const payload = typeof body === 'string' ? body : JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
     ...headers
   });
-  res.end(payload);
+  res.end(typeof body === 'string' ? body : JSON.stringify(body));
 }
 
 function fail(res, status, message, headers) {
@@ -72,84 +72,6 @@ async function readJsonBody(req) {
 function bearer(req) {
   const header = String(req.headers.authorization ?? '');
   return header.startsWith('Bearer ') ? header.slice(7).trim() : null;
-}
-
-/** POST /api/session — mint an identity, resolving a coarse city from the IP. */
-async function createSession(req, res, ip) {
-  const gate = limitSession(ip);
-  if (!gate.ok) return fail(res, 429, 'Slow down a moment.', { 'retry-after': String(gate.retryAfter) });
-
-  const body = await readJsonBody(req);
-  const callsign = sanitizeCallsign(body.callsign);
-  if (!callsign) return fail(res, 400, 'Callsign must be 2-16 visible characters.');
-
-  const location = await lookup(ip);
-  const { player, token } = store.createPlayer({ callsign, location });
-
-  send(res, 201, {
-    id: player.id,
-    token,
-    callsign: player.callsign,
-    location: { city: player.city, country: player.country, countryCode: player.countryCode }
-  });
-}
-
-/** PATCH /api/session — rename, and backfill location if the first lookup missed. */
-async function updateSession(req, res, ip) {
-  const gate = limitSession(ip);
-  if (!gate.ok) return fail(res, 429, 'Slow down a moment.', { 'retry-after': String(gate.retryAfter) });
-
-  const body = await readJsonBody(req);
-  const player = store.authenticate(body.id, bearer(req));
-  if (!player) return fail(res, 401, 'Unknown or expired identity.');
-
-  if (body.callsign !== undefined) {
-    const callsign = sanitizeCallsign(body.callsign);
-    if (!callsign) return fail(res, 400, 'Callsign must be 2-16 visible characters.');
-    store.renamePlayer(player, callsign);
-  }
-  if (!player.city) store.updateLocation(player, await lookup(ip));
-
-  send(res, 200, {
-    id: player.id,
-    callsign: player.callsign,
-    best: player.best,
-    location: { city: player.city, country: player.country, countryCode: player.countryCode }
-  });
-}
-
-/** POST /api/score — record a finished run. */
-async function postScore(req, res, ip) {
-  const gate = limitScore(ip);
-  if (!gate.ok) return fail(res, 429, 'Too many runs, too fast.', { 'retry-after': String(gate.retryAfter) });
-
-  const body = await readJsonBody(req);
-  const player = store.authenticate(body.id, bearer(req));
-  if (!player) return fail(res, 401, 'Unknown or expired identity.');
-
-  const score = Number(body.score);
-  const durationMs = Number(body.durationMs);
-  if (!Number.isFinite(score) || score < 0 || score > 100_000_000) {
-    return fail(res, 400, 'Score out of range.');
-  }
-  if (!Number.isFinite(durationMs) || durationMs < 0) {
-    return fail(res, 400, 'Run duration missing.');
-  }
-  if (Math.floor(score) > maxPlausibleScore(durationMs)) {
-    return fail(res, 422, 'Score is not achievable in that run length.');
-  }
-
-  const improved = store.submitScore(player, Math.floor(score));
-  if (!player.city) store.updateLocation(player, await lookup(ip));
-
-  send(res, 200, { best: player.best, improved, ...store.leaderboard(player.id) });
-}
-
-/** GET /api/leaderboard?id= — top 10, your standing, and your city's champion. */
-function getLeaderboard(req, res, url, ip) {
-  const gate = limitBoard(ip);
-  if (!gate.ok) return fail(res, 429, 'Too many requests.', { 'retry-after': String(gate.retryAfter) });
-  send(res, 200, store.leaderboard(url.searchParams.get('id') ?? null));
 }
 
 async function serveStatic(req, res, url) {
@@ -194,12 +116,28 @@ const server = createServer(async (req, res) => {
 
   try {
     if (url.pathname.startsWith('/api/')) {
-      if (url.pathname === '/api/session' && req.method === 'POST') return await createSession(req, res, ip);
-      if (url.pathname === '/api/session' && req.method === 'PATCH') return await updateSession(req, res, ip);
-      if (url.pathname === '/api/score' && req.method === 'POST') return await postScore(req, res, ip);
-      if (url.pathname === '/api/leaderboard' && req.method === 'GET') return getLeaderboard(req, res, url, ip);
-      if (url.pathname === '/api/health') return send(res, 200, { ok: true });
-      return fail(res, 404, 'No such endpoint.');
+      const ctx = {
+        ip,
+        headers: req.headers,
+        token: bearer(req),
+        query: Object.fromEntries(url.searchParams)
+      };
+
+      let result = null;
+      if (url.pathname === '/api/session' && req.method === 'POST') {
+        result = await api.createSession({ ...ctx, body: await readJsonBody(req) });
+      } else if (url.pathname === '/api/session' && req.method === 'PATCH') {
+        result = await api.updateSession({ ...ctx, body: await readJsonBody(req) });
+      } else if (url.pathname === '/api/score' && req.method === 'POST') {
+        result = await api.postScore({ ...ctx, body: await readJsonBody(req) });
+      } else if (url.pathname === '/api/leaderboard' && req.method === 'GET') {
+        result = await api.getLeaderboard(ctx);
+      } else if (url.pathname === '/api/health') {
+        result = { status: 200, body: { ok: true, store: kv ? 'redis' : 'file' } };
+      }
+
+      if (!result) return fail(res, 404, 'No such endpoint.');
+      return send(res, result.status, result.body, result.headers);
     }
 
     if (req.method !== 'GET' && req.method !== 'HEAD') return fail(res, 405, 'Method not allowed');
@@ -214,12 +152,12 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`🦫  Capy River Run — http://localhost:${PORT}`);
-  console.log(`    data: ${DATA_FILE}${TRUST_PROXY ? '  (trusting X-Forwarded-For)' : ''}`);
+  console.log(`    store: ${kv ? 'redis' : DATA_FILE}${TRUST_PROXY ? '  (trusting X-Forwarded-For)' : ''}`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     server.close();
-    store.flush().finally(() => process.exit(0));
+    store.flush?.().finally(() => process.exit(0));
   });
 }

@@ -1,31 +1,10 @@
-import { randomUUID, randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { randomBytes } from 'node:crypto';
 
-const MAX_CALLSIGN = 16;
-const TOP_N = 10;
+import { TOP_N, cityKey, newPlayer, publicRow, tokenMatches } from './player.js';
 
-/** Strip anything that would let a callsign impersonate UI chrome or smuggle markup. */
-export function sanitizeCallsign(raw) {
-  if (typeof raw !== 'string') return null;
-  const cleaned = raw
-    .normalize('NFKC')
-    .replace(/[\p{C}\p{Zl}\p{Zp}]/gu, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, MAX_CALLSIGN);
-  return cleaned.length >= 2 ? cleaned : null;
-}
-
-function hashToken(token) {
-  return createHash('sha256').update(token).digest('hex');
-}
-
-function tokenMatches(token, hash) {
-  const a = Buffer.from(hashToken(token));
-  const b = Buffer.from(String(hash ?? ''));
-  return a.length === b.length && timingSafeEqual(a, b);
-}
+export { sanitizeCallsign } from './player.js';
 
 /**
  * Flat-file player store. The whole leaderboard lives in memory; the JSON file
@@ -59,28 +38,15 @@ export class Store {
   }
 
   createPlayer({ callsign, location }) {
-    const id = randomUUID();
-    const token = randomBytes(24).toString('base64url');
-    const player = {
-      id,
-      tokenHash: hashToken(token),
-      callsign,
-      city: location?.city ?? null,
-      country: location?.country ?? null,
-      countryCode: location?.countryCode ?? null,
-      best: 0,
-      runs: 0,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    this.#players.set(id, player);
+    const { player, token } = newPlayer({ callsign, location });
+    this.#players.set(player.id, player);
     this.#scheduleSave();
     return { player, token };
   }
 
   authenticate(id, token) {
     const player = this.#players.get(id);
-    if (!player || typeof token !== 'string' || !token) return null;
+    if (!player) return null;
     return tokenMatches(token, player.tokenHash) ? player : null;
   }
 
@@ -116,25 +82,13 @@ export class Store {
       .sort((a, b) => b.best - a.best || a.updatedAt - b.updatedAt);
   }
 
-  static #publicRow(player, rank) {
-    return {
-      rank,
-      id: player.id,
-      callsign: player.callsign,
-      score: player.best,
-      city: player.city,
-      country: player.country,
-      countryCode: player.countryCode
-    };
-  }
-
   /**
    * Leaderboard view: global top 10, the requesting player's standing, and the
    * best player in their city so local rivalry has a face.
    */
   leaderboard(viewerId) {
     const ranked = this.#ranked();
-    const top = ranked.slice(0, TOP_N).map((p, i) => Store.#publicRow(p, i + 1));
+    const top = ranked.slice(0, TOP_N).map((p, i) => publicRow(p, i + 1));
 
     let you = null;
     let local = null;
@@ -143,21 +97,21 @@ export class Store {
     if (viewer) {
       const index = ranked.findIndex((p) => p.id === viewer.id);
       you = {
-        ...Store.#publicRow(viewer, index >= 0 ? index + 1 : null),
+        ...publicRow(viewer, index >= 0 ? index + 1 : null),
         runs: viewer.runs,
         inTop: index >= 0 && index < TOP_N
       };
 
       if (viewer.city) {
-        const cityKey = viewer.city.toLowerCase();
-        const localRanked = ranked.filter((p) => p.city?.toLowerCase() === cityKey);
+        const key = cityKey(viewer.city);
+        const localRanked = ranked.filter((p) => p.city && cityKey(p.city) === key);
         const localIndex = localRanked.findIndex((p) => p.id === viewer.id);
         if (localRanked.length) {
           local = {
             city: viewer.city,
             countryCode: viewer.countryCode,
             players: localRanked.length,
-            champion: Store.#publicRow(localRanked[0], 1),
+            champion: publicRow(localRanked[0], 1),
             yourRank: localIndex >= 0 ? localIndex + 1 : null
           };
         }

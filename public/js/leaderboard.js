@@ -15,8 +15,26 @@ export class Session {
   board = null;
   offline = false;
 
+  /**
+   * Set once the server tells us it has no leaderboard store at all (a deploy
+   * without a database binding). Unlike a flaky connection this will not fix
+   * itself, so we stop asking entirely rather than retrying every 20 seconds
+   * for the rest of the session.
+   */
+  #storeless = false;
+
   constructor({ onChange } = {}) {
     this.onChange = onChange ?? (() => {});
+  }
+
+  /** Note a failure, and remember if the server is permanently store-less. */
+  #noteFailure(err) {
+    if (err instanceof ApiError && err.code === 'no-store') {
+      this.#storeless = true;
+      this.stopPolling();
+    }
+    this.offline = !(err instanceof ApiError) || err.offline;
+    return this.offline;
   }
 
   get id() {
@@ -49,7 +67,7 @@ export class Session {
         this.record = null;
         return false;
       }
-      this.offline = true;
+      this.#noteFailure(err);
     }
 
     this.onChange(this);
@@ -69,7 +87,7 @@ export class Session {
       });
       this.offline = false;
     } catch (err) {
-      if (err instanceof ApiError && !err.offline) throw err;
+      if (!this.#noteFailure(err)) throw err;
       // No server: mint a local-only identity so play can start immediately.
       this.record = identity.save({
         id: `local-${crypto.randomUUID()}`,
@@ -88,11 +106,11 @@ export class Session {
   async rename(callsign) {
     if (!this.record) return null;
     this.record = identity.save({ ...this.record, callsign });
-    if (!this.offline) {
+    if (!this.offline && !this.#storeless) {
       try {
         await api.touchSession({ ...this.record, callsign });
-      } catch {
-        this.offline = true;
+      } catch (err) {
+        this.#noteFailure(err);
       }
     }
     this.onChange(this);
@@ -106,7 +124,7 @@ export class Session {
       this.record = identity.save({ ...this.record, best: score });
     }
 
-    if (!this.record || this.offline || this.record.token === 'local') {
+    if (!this.record || this.offline || this.#storeless || this.record.token === 'local') {
       this.#localBoard();
       this.onChange(this);
       return { best: this.best, improved: improvedLocally, rank: null, offline: true };
@@ -125,7 +143,7 @@ export class Session {
       this.onChange(this);
       return { best: this.record.best, improved: result.improved, rank: result.you?.rank ?? null, offline: false };
     } catch (err) {
-      this.offline = err instanceof ApiError && err.offline;
+      this.#noteFailure(err);
       this.#localBoard();
       this.onChange(this);
       return { best: this.best, improved: improvedLocally, rank: null, offline: true, error: err.message };
@@ -133,11 +151,16 @@ export class Session {
   }
 
   async refresh() {
+    if (this.#storeless) {
+      this.#localBoard();
+      this.onChange(this);
+      return this.board;
+    }
     try {
       this.board = await api.leaderboard(this.id);
       this.offline = false;
     } catch (err) {
-      this.offline = err instanceof ApiError && err.offline;
+      this.#noteFailure(err);
       this.#localBoard();
     }
     this.onChange(this);
@@ -170,6 +193,7 @@ export class Session {
 
   startPolling() {
     this.stopPolling();
+    if (this.#storeless) return;
     this.#timer = setInterval(() => {
       if (document.visibilityState === 'visible') this.refresh();
     }, POLL_MS);

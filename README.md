@@ -22,10 +22,53 @@ a single `<canvas>` on the client.
 
 ```bash
 npm start           # http://localhost:8080
-npm test            # 17 tests, no network, ~1s
+npm test            # 24 tests, no network, ~1s
 ```
 
 There is nothing to install. `npm run dev` restarts on file changes.
+
+## Deploy to Vercel
+
+The repo is deploy-ready: static files in `public/`, the API as serverless
+functions in `api/`, no build step.
+
+1. **[vercel.com/new](https://vercel.com/new) → import this repository.** Leave
+   every setting alone — framework "Other", output directory `public`, no build
+   command. It deploys in well under a minute.
+2. **Point it at the right branch.** Vercel deploys the repository's default
+   branch to production. If the game lives on a feature branch, either merge it
+   to the default branch first, or go to **Settings → Git → Production Branch**,
+   set the branch, and redeploy. (Pushing to a non-default branch also produces
+   a preview URL, which is just as playable.)
+
+That already gives you a playable game. Scores are kept on the device and the
+rail says `offline · local only`, because a serverless filesystem is read-only
+and per-instance — there is nowhere for a global board to live yet.
+
+### Turning on the global leaderboard
+
+Add any Redis with an Upstash-compatible REST API — Vercel Marketplace →
+Upstash, or Upstash directly — and connect it to the project. Nothing to
+install: it needs one of these env var pairs, either of which the integrations
+set for you.
+
+| Variable | Also accepted as |
+|---|---|
+| `KV_REST_API_URL` | `UPSTASH_REDIS_REST_URL` |
+| `KV_REST_API_TOKEN` | `UPSTASH_REDIS_REST_TOKEN` |
+
+Redeploy, and `/api/health` flips from `{"store":"none"}` to `{"store":"redis"}`.
+The client notices on its own — no rebuild, no flag.
+
+**City detection is free on Vercel.** The edge sets `x-vercel-ip-city` on every
+request, so no IP is ever handed to a third-party geo service and there is no
+extra round trip. The `GEO_ENDPOINT` fallback only runs when those headers are
+absent (Cloudflare's `cf-ipcity` is understood too).
+
+Two things the deploy inherits by design: rate limiting moves into Redis, since
+a per-process counter means little when traffic is spread over short-lived
+instances, and a Redis outage **fails open** — the game keeps working rather
+than the leaderboard taking it down.
 
 ## Controls
 
@@ -87,8 +130,11 @@ request IP and nothing finer.
 - The rail shows the global top 10, your own standing if you're outside it, and
   the current champion of your city.
 
-**With no server at all,** the client falls back to a local-only identity and a
-personal best, marks the rail `offline · local only`, and stays fully playable.
+**With no server at all** — or a deploy with no database attached — the client
+falls back to a local-only identity and a personal best, marks the rail
+`offline · local only`, and stays fully playable. A store-less server says so
+explicitly (`503`, `code: "no-store"`), and the client stops asking rather than
+retrying forever against something that will not change.
 
 ### API
 
@@ -110,17 +156,27 @@ simulating runs server-side.
 | Variable | Default | Notes |
 |---|---|---|
 | `PORT` / `HOST` | `8080` / `0.0.0.0` | |
-| `DATA_FILE` | `./data/leaderboard.json` | Written atomically, on a debounce |
+| `DATA_FILE` | `./data/leaderboard.json` | Local file store; ignored when Redis is configured |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | unset | Upstash-compatible Redis. Present → the global board is live; absent → local-only scores |
 | `TRUST_PROXY` | off | Set to `1` **only** behind a proxy that rewrites `X-Forwarded-For` — otherwise the header is caller-controlled and anyone can pick their own city |
 | `GEO_ENDPOINT` | `https://ipwho.is/{ip}` | Any JSON endpoint with a `city` field; private and loopback IPs are never sent |
 
 ## Layout
 
 ```
+api/             Vercel serverless entry points (thin wrappers over server/)
+  session.js     POST create identity · PATCH rename
+  score.js       POST a finished run
+  leaderboard.js GET the board
+  health.js      is a store wired up?
 server/
-  server.js      static files + JSON API, no framework
-  store.js       in-memory players, atomic JSON snapshots
-  geo.js         IP → coarse city, cached, private ranges short-circuited
+  handlers.js    the API itself, written once for both hosts
+  server.js      long-running host: static files + the same handlers
+  store.js       file-backed players, atomic JSON snapshots (local)
+  kv-store.js    Redis-backed players and ranking (serverless)
+  kv.js          minimal Upstash REST client
+  player.js      callsign rules, token hashing, public row shape
+  geo.js         edge geo headers, else IP lookup; private ranges never sent
   scoring.js     the plausible-score bound
   rate-limit.js  fixed-window counter per IP
 public/js/
@@ -137,7 +193,7 @@ public/js/
 
 ## Tests
 
-`npm test` runs 17 tests with no network and no browser.
+`npm test` runs 24 tests with no network and no browser.
 
 The centrepiece is a **headless bot that plays the real physics through the real
 spawner** for 24 five-minute runs. It isn't there to prove a bot can win — it's
@@ -149,7 +205,10 @@ seconds into a run.
 
 The rest covers callsign sanitisation, token authentication, persistence round
 trips, leaderboard ranking, the score bound, private-IP handling, and rate
-limiting.
+limiting — against **both** stores. The Redis path runs against an in-memory
+stand-in that speaks the same commands, including an assertion that reading the
+board stays within two round trips, so a deployed leaderboard isn't the first
+place that code ever runs.
 
 ## License
 

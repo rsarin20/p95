@@ -40,6 +40,49 @@ export function isPrivateIp(ip) {
   return false;
 }
 
+/**
+ * Coarse location for a request.
+ *
+ * Prefers the edge network's own geo headers — Vercel and Cloudflare both
+ * resolve the city before the request reaches us, which is faster, free, and
+ * saves handing a user's IP to a third party at all. Falls back to an IP
+ * lookup when running somewhere that doesn't provide them.
+ */
+export async function resolveLocation({ ip, headers }) {
+  const fromEdge = locationFromHeaders(headers);
+  if (fromEdge.city) return fromEdge;
+  return lookup(ip);
+}
+
+/** Vercel / Cloudflare geo headers, or an empty location. */
+export function locationFromHeaders(headers) {
+  if (!headers) return EMPTY;
+  const get = (name) => {
+    const value = typeof headers.get === 'function' ? headers.get(name) : headers[name];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  };
+
+  // Vercel percent-encodes these, so "S%C3%A3o%20Paulo" arrives intact.
+  const city = decode(get('x-vercel-ip-city') ?? get('cf-ipcity'));
+  if (!city) return EMPTY;
+
+  const countryCode = decode(get('x-vercel-ip-country') ?? get('cf-ipcountry'));
+  return {
+    city: trim(city, 28),
+    country: null, // edge headers carry the code only; the UI shows the code
+    countryCode: countryCode ? trim(countryCode, 2).toUpperCase() : null
+  };
+}
+
+function decode(value) {
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function readCache(ip) {
   const hit = cache.get(ip);
   if (!hit) return null;
