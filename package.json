@@ -1,0 +1,17 @@
+{
+  "name": "capy-river-run",
+  "version": "1.0.0",
+  "description": "Capy River Run — an endless river runner starring a stoic capybara balancing a yuzu.",
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "license": "MIT",
+  "private": true
+}

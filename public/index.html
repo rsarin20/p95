@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="description" content="Capy River Run — an endless river runner starring a stoic capybara balancing a yuzu. Hop the driftwood, dive the rogue ducks, stay chill.">
+<meta name="theme-color" content="#0b1524">
+<title>Capy River Run</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🦫</text></svg>">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<main class="stage" id="stage">
+
+  <!-- ── Left 60%: the river ─────────────────────────────────────────── -->
+  <section class="canvas-wrap" id="canvasWrap">
+    <canvas id="game" aria-label="Capy River Run game canvas" role="img"></canvas>
+
+    <!-- Compact score readout for narrow screens where the rail moves below -->
+    <div class="mini-hud" aria-hidden="true">
+      <span class="mini-hud__score" id="miniScore">00000</span>
+      <span class="mini-hud__best" id="miniBest">BEST 00000</span>
+    </div>
+
+    <div class="overlay" id="overlay" data-screen="boot">
+
+      <!-- Onboarding: one field, no dialogs -->
+      <form class="panel panel--boot" id="callsignForm" autocomplete="off" novalidate>
+        <h1 class="panel__title">CAPY RIVER RUN</h1>
+        <p class="panel__lede">A stoic capybara. One yuzu. An endless river.</p>
+        <label class="field">
+          <span class="field__label">Enter callsign</span>
+          <input class="field__input" id="callsignInput" name="callsign" maxlength="16"
+                 placeholder="FastCapy" spellcheck="false" autocapitalize="characters"
+                 aria-describedby="callsignHint">
+        </label>
+        <p class="field__hint" id="callsignHint">2–16 characters. Your city is detected automatically.</p>
+        <button class="btn btn--primary" type="submit" id="callsignSubmit">Start drifting</button>
+      </form>
+
+      <!-- Ready to launch -->
+      <div class="panel panel--ready" id="readyPanel">
+        <h2 class="panel__title">READY, <span id="readyCallsign">CAPY</span></h2>
+        <p class="panel__lede">
+          <kbd>Space</kbd> to hop · hold for height · <kbd>↓</kbd> to dive under
+        </p>
+        <button class="btn btn--primary" type="button" id="startButton">Push off</button>
+        <p class="panel__foot" id="readyLocation"></p>
+      </div>
+
+      <!-- Game over -->
+      <div class="panel panel--over" id="overPanel">
+        <h2 class="panel__title panel__title--sm">DRIFT ENDED</h2>
+        <p class="over__score" id="overScore">00000</p>
+        <p class="over__meta" id="overMeta">Personal best 00000</p>
+        <div class="over__actions">
+          <button class="btn btn--primary" type="button" id="retryButton">Again <kbd>↵</kbd></button>
+          <button class="btn btn--ghost" type="button" id="shareButton">Share <kbd>C</kbd></button>
+        </div>
+        <p class="over__toast" id="shareToast" role="status" aria-live="polite"></p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Right 40%: live data rail ───────────────────────────────────── -->
+  <aside class="rail" id="rail">
+    <header class="rail__head">
+      <h1 class="rail__title">CAPY RIVER RUN</h1>
+      <p class="rail__sub" id="railIdentity">drifting anonymously</p>
+    </header>
+
+    <div class="scores">
+      <div class="scores__block">
+        <span class="scores__label">Score</span>
+        <span class="scores__value" id="scoreValue">00000</span>
+      </div>
+      <div class="scores__block scores__block--best">
+        <span class="scores__label">Best</span>
+        <span class="scores__value" id="bestValue">00000</span>
+      </div>
+    </div>
+
+    <div class="chill" id="chillBanner" aria-live="polite"></div>
+
+    <section class="board" aria-labelledby="boardTitle">
+      <div class="board__head">
+        <h2 class="board__title" id="boardTitle">Global leaderboard</h2>
+        <span class="board__status" id="boardStatus">syncing…</span>
+      </div>
+      <ol class="board__list" id="boardList"></ol>
+      <div class="board__you" id="boardYou" hidden></div>
+    </section>
+
+    <section class="local" id="localPride" hidden>
+      <h2 class="local__title">Local pride</h2>
+      <p class="local__body" id="localBody"></p>
+    </section>
+
+    <footer class="rail__foot">
+      <dl class="legend">
+        <div><dt><kbd>Space</kbd> / tap</dt><dd>hop — hold higher</dd></div>
+        <div><dt><kbd>↓</kbd> / swipe</dt><dd>dive &amp; submerge</dd></div>
+        <div><dt><kbd>C</kbd></dt><dd>copy share card</dd></div>
+      </dl>
+    </footer>
+  </aside>
+
+</main>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
