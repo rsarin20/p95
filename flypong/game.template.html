@@ -1,0 +1,981 @@
+<title>Fruit Fly Table Tennis</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground: #eceeed;
+    --surface: #ffffff;
+    --sunk: #e2e6e5;
+    --line: #ccd5d4;
+    --line-soft: #dde3e2;
+    --ink: #15201f;
+    --muted: #5d706e;
+    --accent: #a8701f;        /* chitin -- taken from the model's own materials */
+    --accent-soft: #f0e0c6;
+    --data: #2f6f87;          /* wing membrane */
+    --good: #2f7d5e;
+    --bad: #ab4436;
+    --chamber-far: #dfe5e4;
+    --chamber-near: #f3f5f4;
+    --felt: #2c6b55;
+    --felt-edge: #f6f3ea;
+    --shadow: rgba(20, 40, 38, .20);
+
+    --f-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --f-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    --f-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e1516;
+      --surface: #15201f;
+      --sunk: #0a1011;
+      --line: #26383a;
+      --line-soft: #1d2c2d;
+      --ink: #e4ecea;
+      --muted: #8ba3a1;
+      --accent: #d79a3c;
+      --accent-soft: #3b2e18;
+      --data: #7fb9cf;
+      --good: #57b894;
+      --bad: #d9695a;
+      --chamber-far: #0b1213;
+      --chamber-near: #16211f;
+      --felt: #14503f;
+      --felt-edge: #cfd9d2;
+      --shadow: rgba(0, 0, 0, .45);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0e1516;
+    --surface: #15201f;
+    --sunk: #0a1011;
+    --line: #26383a;
+    --line-soft: #1d2c2d;
+    --ink: #e4ecea;
+    --muted: #8ba3a1;
+    --accent: #d79a3c;
+    --accent-soft: #3b2e18;
+    --data: #7fb9cf;
+    --good: #57b894;
+    --bad: #d9695a;
+    --chamber-far: #0b1213;
+    --chamber-near: #16211f;
+    --felt: #14503f;
+    --felt-edge: #cfd9d2;
+    --shadow: rgba(0, 0, 0, .45);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    line-height: 1.55;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-inline: 18px;
+    padding-block: 22px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* ---- masthead ---- */
+  .mast { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 22px; }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 44px);
+    letter-spacing: -.015em;
+    line-height: .98;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .mast h1 em { font-style: normal; color: var(--accent); }
+  .specimen {
+    font-family: var(--f-data);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .04em;
+    border-left: 2px solid var(--accent);
+    padding-left: 10px;
+    margin-bottom: 3px;
+  }
+  .specimen b { color: var(--ink); font-weight: 500; font-style: italic; }
+
+  /* ---- scoreboard ---- */
+  .board {
+    margin-left: auto;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .board .side { padding: 6px 16px 8px; text-align: center; min-width: 88px; }
+  .board .side + .side { border-left: 1px solid var(--line); }
+  .board .who {
+    font-family: var(--f-data); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .board .pts {
+    font-family: var(--f-data); font-weight: 600; font-size: 30px;
+    line-height: 1.1; font-variant-numeric: tabular-nums;
+  }
+  .board .side.lead .pts { color: var(--accent); }
+  .board .side.serving .who::after { content: " ●"; color: var(--accent); }
+
+  /* ---- chamber ---- */
+  .chamber { position: relative; border: 1px solid var(--line); background: var(--sunk); }
+  canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: none; }
+
+  .hud {
+    position: absolute; inset: auto 0 0 0;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 12px; padding: 10px 12px; pointer-events: none;
+    font-family: var(--f-data); font-size: 11px; letter-spacing: .03em;
+    color: var(--muted);
+  }
+  .hud .clock { color: var(--ink); }
+  .hud .clock b { color: var(--accent); font-weight: 600; }
+
+  .call {
+    position: absolute; inset: 0;
+    display: grid; place-content: center; text-align: center;
+    pointer-events: none; gap: 4px;
+  }
+  .call .big {
+    font-family: var(--f-display); font-weight: 700;
+    font-size: clamp(22px, 4vw, 34px); letter-spacing: -.01em;
+  }
+  .call .sub { font-family: var(--f-data); font-size: 12px; color: var(--muted); }
+  .call[hidden] { display: none; }
+
+  /* ---- panels ---- */
+  .cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+
+  .panel { border: 1px solid var(--line); background: var(--surface); padding: 14px 16px 16px; }
+  .panel h2 {
+    font-family: var(--f-data); font-size: 10px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 12px;
+  }
+
+  .readouts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px; }
+  .ro { display: flex; flex-direction: column; gap: 1px; }
+  .ro .k { font-family: var(--f-data); font-size: 10px; letter-spacing: .06em; color: var(--muted); }
+  .ro .v {
+    font-family: var(--f-data); font-size: 19px; font-weight: 500;
+    font-variant-numeric: tabular-nums; line-height: 1.2;
+  }
+  .ro .v small { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+  /* policy output meters -- the six numbers the network emits, live */
+  .nerve { display: flex; flex-direction: column; gap: 7px; }
+  .nrow { display: grid; grid-template-columns: 58px 1fr 42px; align-items: center; gap: 9px; }
+  .nrow .lbl { font-family: var(--f-data); font-size: 10px; color: var(--muted); letter-spacing: .04em; }
+  .nrow .num {
+    font-family: var(--f-data); font-size: 11px; text-align: right;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  .bar { position: relative; height: 7px; background: var(--sunk); border: 1px solid var(--line-soft); }
+  .bar .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--line); }
+  .bar .fill { position: absolute; top: 0; bottom: 0; background: var(--data); }
+  .bar.swing .fill { background: var(--accent); }
+
+  /* ---- controls ---- */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--line); }
+  .seg button {
+    font-family: var(--f-data); font-size: 11px; letter-spacing: .04em;
+    padding: 6px 11px; background: var(--surface); color: var(--muted);
+    border: 0; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); font-weight: 500; }
+  .seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ctl-label { font-family: var(--f-data); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .btn {
+    font-family: var(--f-data); font-size: 11px; letter-spacing: .04em;
+    padding: 6px 13px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- prose ---- */
+  .note { max-width: 66ch; }
+  .note p { margin: 0 0 10px; font-size: 14px; color: var(--muted); }
+  .note p:last-child { margin-bottom: 0; }
+  .note strong { color: var(--ink); font-weight: 500; }
+  .note a { color: var(--accent); }
+
+  .spec { display: grid; grid-template-columns: repeat(auto-fit, minmax(122px, 1fr)); gap: 12px 16px; }
+  .spec div { border-top: 1px solid var(--line); padding-top: 7px; }
+  .spec .k { font-family: var(--f-data); font-size: 10px; letter-spacing: .05em; color: var(--muted); display: block; }
+  .spec .v { font-family: var(--f-data); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+  .foot { font-family: var(--f-data); font-size: 11px; color: var(--muted); }
+  .foot a { color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <div class="specimen">SPECIMEN &nbsp;<b>Drosophila melanogaster</b>&nbsp; · flybody · 0.98 mg</div>
+      <h1>Fruit fly <em>table tennis</em></h1>
+    </div>
+    <div class="board">
+      <div class="side" id="side-you"><div class="who">You</div><div class="pts" id="pts-you">0</div></div>
+      <div class="side" id="side-fly"><div class="who">Fly</div><div class="pts" id="pts-fly">0</div></div>
+    </div>
+  </header>
+
+  <div class="chamber">
+    <canvas id="cv" width="1200" height="740" aria-label="Simulation chamber: a fruit fly playing table tennis"></canvas>
+    <div class="call" id="call" hidden><div class="big" id="call-big"></div><div class="sub" id="call-sub"></div></div>
+    <div class="hud">
+      <div id="hud-left">move to aim · hold to swing hard</div>
+      <div class="clock">fly time <b id="hud-scale">×8</b> slower &nbsp;·&nbsp; <span id="hud-elapsed">0.00 s</span> elapsed in the chamber</div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <section class="panel">
+      <h2>Chamber telemetry</h2>
+      <div class="readouts">
+        <div class="ro"><span class="k">BALL SPEED</span><span class="v" id="ro-ball">0 <small>cm/s</small></span></div>
+        <div class="ro"><span class="k">FLY AIRSPEED</span><span class="v" id="ro-fly">0 <small>cm/s</small></span></div>
+        <div class="ro"><span class="k">RALLY</span><span class="v" id="ro-rally">0 <small>shots</small></span></div>
+        <div class="ro"><span class="k">LONGEST RALLY</span><span class="v" id="ro-best">0 <small>shots</small></span></div>
+        <div class="ro"><span class="k">FLY RETURNS</span><span class="v" id="ro-ret">0<small>/0</small></span></div>
+        <div class="ro"><span class="k">WINGBEAT</span><span class="v" id="ro-wing">220 <small>Hz</small></span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Policy output · live</h2>
+      <div class="nerve" id="nerve"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Controls</h2>
+    <div class="controls">
+      <span class="ctl-label">Fly time</span>
+      <div class="seg" id="seg-speed">
+        <button type="button" data-v="0.20" aria-pressed="false">×5</button>
+        <button type="button" data-v="0.125" aria-pressed="true">×8</button>
+        <button type="button" data-v="0.07" aria-pressed="false">×14</button>
+      </div>
+      <span class="ctl-label">Fly's aim</span>
+      <div class="seg" id="seg-diff">
+        <button type="button" data-v="0" aria-pressed="false">Gentle</button>
+        <button type="button" data-v="1" aria-pressed="true">Honest</button>
+        <button type="button" data-v="2" aria-pressed="false">Merciless</button>
+      </div>
+      <button type="button" class="btn" id="btn-reset">Reset match</button>
+      <button type="button" class="btn" id="btn-pause">Pause</button>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="panel note">
+      <h2>What you are playing against</h2>
+      <p><strong>flybody</strong> is an anatomically detailed model of the fruit fly, built by Google DeepMind with HHMI Janelia and published in <em>Nature</em> in 2025. The body on screen is that model: 68 segments, 109 degrees of freedom, 78 actuators, a measured mass of 0.98 mg. Its outline here is the real visual mesh, projected through this camera at 16 headings.</p>
+      <p>The opponent's <strong>stroke was trained, not scripted</strong>. A small network reads the ball and commands flight acceleration, paddle yaw and pitch, and a swing; an evolution strategy optimised it over millions of simulated rallies until the returns landed on your half. The panel above is its six live outputs.</p>
+      <p>The table is <strong>4.4 cm long</strong> — fly scale. At that size a rally takes about a tenth of a second, which is why the chamber runs in slow motion. <span id="note-eval"></span></p>
+    </section>
+
+    <section class="panel">
+      <h2>Measured from the model</h2>
+      <div class="spec" id="spec"></div>
+    </section>
+  </div>
+
+  <p class="foot">Model: <a href="https://github.com/google-deepmind/mujoco_menagerie/tree/main/flybody">google-deepmind/mujoco_menagerie · flybody</a>, Apache-2.0. Paper: Vaxenburg et al., <a href="https://www.nature.com/articles/s41586-025-09029-4">Whole-body physics simulation of fruit fly locomotion</a>, Nature 2025.</p>
+</div>
+
+<script>/*__FLYPONG_BUNDLE__*/</script>
+
+<script>
+(() => {
+'use strict';
+const B = window.FLYPONG;
+const C = B.constants, NET = B.policy, SHAPE = B.shape;
+
+/* ========================================================================
+   Physics -- a direct transcription of flypong/physics.py.  Same constants,
+   same order of operations, so the policy meets exactly the world it was
+   trained in.
+   ===================================================================== */
+const {HALF_LEN, HALF_WID, TABLE_Z, NET_H, G, BALL_R, BALL_DRAG, E_TABLE,
+       MU_TABLE, PADDLE_R, HUMAN_PADDLE_R, E_PADDLE, MU_PADDLE, SWING_MAX,
+       SWING_MIN, A_MAX, FLY_DRAG, V_MAX, FLY_Z_MIN, FLY_X_MAX, FLY_ROAM,
+       AZ_MAX, EL_MIN, EL_MAX, DT} = C;
+
+const v3 = (x = 0, y = 0, z = 0) => ({x, y, z});
+const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+const len = a => Math.hypot(a.x, a.y, a.z);
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+
+function stepBall(b, dt) {
+  const p = b.p, v = b.v;
+  v.x += (-BALL_DRAG * v.x) * dt;
+  v.y += (-BALL_DRAG * v.y) * dt;
+  v.z += (-BALL_DRAG * v.z - G) * dt;
+
+  const px = p.x, nx = p.x + v.x * dt, ny = p.y + v.y * dt, nz = p.z + v.z * dt;
+  const ev = {bounced: false, net: false, out: false};
+
+  if (Math.sign(nx) !== Math.sign(px) && nz < TABLE_Z + NET_H + BALL_R) ev.net = true;
+
+  const overTable = Math.abs(nx) <= HALF_LEN && Math.abs(ny) <= HALF_WID;
+  const below = nz < TABLE_Z + BALL_R;
+
+  p.x = nx; p.y = ny; p.z = nz;
+  if (below && overTable && v.z < 0) {
+    p.z = TABLE_Z + BALL_R;
+    v.x *= (1 - MU_TABLE); v.y *= (1 - MU_TABLE); v.z = -v.z * E_TABLE;
+    ev.bounced = true;
+  } else if (below && !overTable) {
+    ev.out = true;
+  }
+  return ev;
+}
+
+function paddleNormal(az, el) {
+  const ce = Math.cos(el);
+  return v3(ce * Math.cos(az), ce * Math.sin(az), Math.sin(el));
+}
+
+function paddleHit(b, centre, n, vel, swing, radius) {
+  const d = v3(b.p.x - centre.x, b.p.y - centre.y, b.p.z - centre.z);
+  const dn = dot(d, n);
+  const radial2 = dot(d, d) - dn * dn;
+  if (Math.abs(dn) >= BALL_R + 0.04 || radial2 >= radius * radius) return false;
+
+  const vrel = v3(b.v.x - vel.x, b.v.y - vel.y, b.v.z - vel.z);
+  const closing = dot(vrel, n);
+  if (closing >= 0) return false;
+
+  const s = swing * SWING_MAX;
+  for (const k of ['x', 'y', 'z']) {
+    const vn = closing * n[k];
+    const vt = vrel[k] - vn;
+    b.v[k] = vt * (1 - MU_PADDLE) - E_PADDLE * vn + vel[k] + s * n[k];
+    b.p[k] = centre[k] + (d[k] - dn * n[k]) + n[k] * (BALL_R + 0.045);
+  }
+  return true;
+}
+
+function stepFly(f, thrust, dt) {
+  const p = f.p, v = f.v;
+  v.x += (thrust.x * A_MAX - FLY_DRAG * v.x) * dt;
+  v.y += (thrust.y * A_MAX - FLY_DRAG * v.y) * dt;
+  v.z += (thrust.z * A_MAX - FLY_DRAG * v.z - G) * dt;
+
+  const sp = len(v);
+  if (sp > V_MAX) { const k = V_MAX / sp; v.x *= k; v.y *= k; v.z *= k; }
+
+  p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
+
+  if (p.z < FLY_Z_MIN) { p.z = FLY_Z_MIN; if (v.z < 0) v.z = 0; }
+  if (p.z > 2.6) { p.z = 2.6; if (v.z > 0) v.z = 0; }
+  if (p.x > FLY_X_MAX) { p.x = FLY_X_MAX; if (v.x > 0) v.x = 0; }
+  const xmin = -HALF_LEN - FLY_ROAM;
+  if (p.x < xmin) { p.x = xmin; if (v.x < 0) v.x = 0; }
+  const ylim = HALF_WID + FLY_ROAM;
+  if (p.y > ylim) { p.y = ylim; if (v.y > 0) v.y = 0; }
+  if (p.y < -ylim) { p.y = -ylim; if (v.y < 0) v.y = 0; }
+}
+
+function predictIntercept(b, planeX) {
+  let vx = b.v.x;
+  if (Math.abs(vx) < 1e-6) vx = -1e-6;
+  const t = clamp((planeX - b.p.x) / vx, 0, 0.5);
+  const y = b.p.y + b.v.y * t;
+  let z = b.p.z + b.v.z * t - 0.5 * G * t * t;
+  if (z < TABLE_Z + BALL_R) z = 2 * (TABLE_Z + BALL_R) - z;
+  return {p: v3(planeX, y, clamp(z, TABLE_Z + BALL_R, 3.0)), t};
+}
+
+/* ========================================================================
+   The trained policy.  Weights arrive transposed (out x in) so each row is
+   one unit's fan-in.
+   ===================================================================== */
+const obsBuf = new Float64Array(C.OBS_DIM);
+const h1 = new Float64Array(NET.hidden), h2 = new Float64Array(NET.hidden);
+const act = new Float64Array(C.ACT_DIM);
+
+function layer(W, bias, src, dst) {
+  for (let o = 0; o < W.length; o++) {
+    const row = W[o];
+    let s = bias[o];
+    for (let i = 0; i < row.length; i++) s += row[i] * src[i];
+    dst[o] = Math.tanh(s);
+  }
+}
+
+function runPolicy(b, f, aim, hitFlag) {
+  const ic = predictIntercept(b, f.p.x);
+  const o = obsBuf;
+  o[0] = f.p.x / 2; o[1] = f.p.y / 2; o[2] = f.p.z / 2;
+  o[3] = f.v.x / 100; o[4] = f.v.y / 100; o[5] = f.v.z / 100;
+  o[6] = (b.p.x - f.p.x) / 2; o[7] = (b.p.y - f.p.y) / 2; o[8] = (b.p.z - f.p.z) / 2;
+  o[9] = b.v.x / 100; o[10] = b.v.y / 100; o[11] = b.v.z / 100;
+  o[12] = (ic.p.x - f.p.x) / 2; o[13] = (ic.p.y - f.p.y) / 2; o[14] = (ic.p.z - f.p.z) / 2;
+  o[15] = ic.t * 10;
+  o[16] = aim.x / 2; o[17] = aim.y / 2;
+  o[18] = hitFlag;
+  o[19] = (b.p.z - TABLE_Z) / 1;
+
+  layer(NET.w1, NET.b1, o, h1);
+  layer(NET.w2, NET.b2, h1, h2);
+  layer(NET.w3, NET.b3, h2, act);
+
+  return {
+    thrust: v3(clamp(act[0], -1, 1), clamp(act[1], -1, 1), clamp(act[2], -1, 1)),
+    az: clamp(act[3], -1, 1) * AZ_MAX,
+    el: EL_MIN + (clamp(act[4], -1, 1) + 1) * 0.5 * (EL_MAX - EL_MIN),
+    swing: SWING_MIN + (clamp(act[5], -1, 1) + 1) * 0.5 * (1 - SWING_MIN),
+    raw: act,
+  };
+}
+
+/* ========================================================================
+   Camera -- matches measure_fly.py, so the stored silhouettes line up with
+   the projected court.
+   ===================================================================== */
+const EYE = v3(6.0, 0, 3.2), TARGET = v3(0, 0, 0.30);
+const fwd = (() => { const d = v3(EYE.x - TARGET.x, EYE.y - TARGET.y, EYE.z - TARGET.z);
+                     const l = len(d); return v3(d.x / l, d.y / l, d.z / l); })();
+const right = (() => { const r = v3(-fwd.y, fwd.x, 0); const l = Math.hypot(r.x, r.y);
+                       return v3(r.x / l, r.y / l, 0); })();
+const upv = v3(fwd.y * right.z - fwd.z * right.y,
+               fwd.z * right.x - fwd.x * right.z,
+               fwd.x * right.y - fwd.y * right.x);
+
+let W = 1200, H = 740, FOCAL = 1200 * 1.55, CX = 600, CY = 400;
+
+function project(p) {
+  const d = v3(p.x - EYE.x, p.y - EYE.y, p.z - EYE.z);
+  const depth = -dot(d, fwd);
+  const s = FOCAL / Math.max(depth, 0.2);
+  return {x: CX + dot(d, right) * s, y: CY - dot(d, upv) * s, depth, s};
+}
+
+/* ========================================================================
+   Match state
+   ===================================================================== */
+const S = {
+  ball: {p: v3(1.6, 0, 0.9), v: v3(0, 0, 0)},
+  fly: {p: v3(-1.5, 0, 0.55), v: v3(0, 0, 0)},
+  paddle: {p: v3(2.05, 0, 0.55), v: v3(0, 0, 0), target: v3(2.05, 0, 0.55), down: false},
+  aim: v3(1.2, 0.3, 0),
+  cmd: null,
+  flyHit: false,
+  lastHitter: null,
+  bounces: 0,
+  phase: 'serve',        // serve | rally | dead
+  phaseT: 0,
+  score: {you: 0, fly: 0},
+  rally: 0, best: 0,
+  flyChances: 0, flyReturns: 0,
+  flyTime: 0,
+  trail: [],
+  wingPhase: 0,
+  paused: false,
+  timeScale: 0.125,
+  difficulty: 1,
+};
+
+function newPoint(who) {
+  S.phase = 'dead'; S.phaseT = 0;
+  if (who === 'you') S.score.you++; else S.score.fly++;
+  S.best = Math.max(S.best, S.rally);
+  paintScore();
+}
+
+function serve() {
+  S.ball.p = v3(S.paddle.p.x - 0.15, S.paddle.p.y, S.paddle.p.z + 0.30);
+  S.ball.v = v3(-6, 0, 52);
+  S.lastHitter = null; S.bounces = 0; S.flyHit = false;
+  S.rally = 0; S.trail.length = 0;
+  S.phase = 'serve'; S.phaseT = 0;
+}
+
+function resetMatch() {
+  S.score.you = 0; S.score.fly = 0; S.best = 0;
+  S.flyChances = 0; S.flyReturns = 0; S.flyTime = 0;
+  S.fly.p = v3(-1.5, 0, 0.55); S.fly.v = v3(0, 0, 0);
+  serve(); paintScore();
+}
+
+/* Pick where the fly will try to put the ball.  The policy takes an aim point
+   as input, so difficulty is honest: the same network, told to aim somewhere
+   harder for you to reach. */
+function chooseAim() {
+  const away = -Math.sign(S.paddle.p.y || 1);
+  const spread = [0.35, 0.68, 0.95][S.difficulty];
+  const depth = [0.9, 1.35, 1.75][S.difficulty];
+  S.aim = v3(depth + Math.random() * 0.35, clamp(away * spread * (0.6 + Math.random() * 0.4), -0.95, 0.95), 0);
+}
+
+/* ========================================================================
+   One physics tick of fly time
+   ===================================================================== */
+function tick(dt) {
+  S.flyTime += dt;
+  S.wingPhase += dt * 220 * 2 * Math.PI;
+
+  // --- human paddle: follows the pointer, tracks the ball in depth --------
+  const pad = S.paddle;
+  let wantX = 2.05;
+  if (S.ball.p.x > 0.2) wantX = clamp(S.ball.p.x + 0.10, 0.95, 2.55);
+  pad.target.x = wantX;
+
+  const k = 1 - Math.exp(-dt * 26);
+  const prev = v3(pad.p.x, pad.p.y, pad.p.z);
+  pad.p.x += (pad.target.x - pad.p.x) * k;
+  pad.p.y += (pad.target.y - pad.p.y) * k;
+  pad.p.z += (pad.target.z - pad.p.z) * k;
+  pad.v = v3((pad.p.x - prev.x) / dt, (pad.p.y - prev.y) / dt, (pad.p.z - prev.z) / dt);
+
+  // --- fly: the trained policy ------------------------------------------
+  const cmd = runPolicy(S.ball, S.fly, S.aim, S.flyHit ? 1 : 0);
+  S.cmd = cmd;
+  stepFly(S.fly, cmd.thrust, dt);
+
+  const flyN = paddleNormal(cmd.az, cmd.el);
+  if (S.phase === 'rally' && S.lastHitter === 'you' && S.ball.p.x < 0) {
+    if (paddleHit(S.ball, S.fly.p, flyN, S.fly.v, cmd.swing, PADDLE_R)) {
+      S.lastHitter = 'fly'; S.flyHit = true; S.bounces = 0; S.rally++;
+      S.flyReturns++;
+      tameShot(1);
+    }
+  }
+
+  // --- human paddle contact ---------------------------------------------
+  const hn = humanNormal();
+  if (S.ball.p.x > 0.2 && S.lastHitter !== 'you') {
+    const swing = clamp(0.12 + len(pad.v) / 240 + (pad.down ? 0.42 : 0), SWING_MIN, 1);
+    if (paddleHit(S.ball, pad.p, hn, pad.v, swing, HUMAN_PADDLE_R)) {
+      S.lastHitter = 'you'; S.flyHit = false; S.bounces = 0; S.rally++;
+      if (S.phase === 'serve') S.phase = 'rally';
+      tameShot(-1);
+      chooseAim();
+      S.flyChances++;
+      paintScore();
+    }
+  }
+
+  // --- ball --------------------------------------------------------------
+  const ev = stepBall(S.ball, dt);
+
+  if (S.phase === 'serve') {
+    // A missed toss costs nothing -- just toss again.
+    if (S.ball.p.z < TABLE_Z - 0.3 || ev.out || ev.bounced) serve();
+    return;
+  }
+  if (S.phase !== 'rally') return;
+
+  const opp = S.lastHitter === 'you' ? 'fly' : 'you';
+
+  if (ev.net) { newPoint(opp); S.deadMsg = ['Net', S.lastHitter === 'you' ? 'your shot clipped the tape' : 'the fly caught the tape']; return; }
+
+  if (ev.bounced) {
+    const onFlySide = S.ball.p.x <= 0;
+    const correctSide = (S.lastHitter === 'you') ? onFlySide : !onFlySide;
+    if (S.bounces === 0) {
+      if (!correctSide) { newPoint(opp); S.deadMsg = ['Short', 'that one came down on the wrong half']; return; }
+      S.bounces = 1;
+    } else {
+      newPoint(S.lastHitter);
+      S.deadMsg = S.lastHitter === 'fly' ? ['Fly point', 'two bounces on your half'] : ['Your point', 'the fly could not reach it'];
+      return;
+    }
+  }
+
+  if (ev.out || S.ball.p.z < TABLE_Z - 1.2 || Math.abs(S.ball.p.x) > 6) {
+    if (S.bounces === 0) { newPoint(opp); S.deadMsg = ['Long', S.lastHitter === 'you' ? 'your shot missed the table' : 'the fly overhit it']; }
+    else { newPoint(S.lastHitter); S.deadMsg = S.lastHitter === 'fly' ? ['Fly point', 'past you'] : ['Your point', 'past the fly']; }
+  }
+}
+
+/* Keep shots inside the band the policy was trained on -- fly-scale physics
+   is unforgiving, and an 18 cm/s difference is the whole table. */
+function tameShot(dir) {
+  const v = S.ball.v;
+  if (dir < 0) {                       // towards the fly
+    v.x = clamp(v.x, -78, -26);
+    v.y = clamp(v.y, -30, 30);
+    v.z = clamp(v.z, -12, 46);
+    const t = S.ball.p.x / Math.max(-v.x, 1e-3);
+    const zNet = S.ball.p.z + v.z * t - 0.5 * G * t * t;
+    if (zNet < 0.42) v.z += (0.42 - zNet) / t;
+  } else {                             // towards you
+    v.x = clamp(v.x, 24, 82);
+    v.y = clamp(v.y, -32, 32);
+    v.z = clamp(v.z, -12, 48);
+  }
+}
+
+function humanNormal() {
+  const pv = S.paddle.v;
+  const n = v3(-1, -clamp(pv.y / 190, -0.85, 0.85), clamp(0.20 + pv.z / 170, -0.5, 0.9));
+  const l = len(n);
+  return v3(n.x / l, n.y / l, n.z / l);
+}
+
+/* ========================================================================
+   Drawing
+   ===================================================================== */
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const css = getComputedStyle(document.documentElement);
+let TOK = {};
+function readTokens() {
+  const g = n => css.getPropertyValue(n).trim();
+  TOK = {far: g('--chamber-far'), near: g('--chamber-near'), felt: g('--felt'),
+         feltEdge: g('--felt-edge'), line: g('--line'), ink: g('--ink'),
+         accent: g('--accent'), data: g('--data'), muted: g('--muted'),
+         shadow: g('--shadow'), surface: g('--surface')};
+}
+
+function resize() {
+  const rect = cv.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.round(rect.width); H = Math.round(rect.width * 0.617);
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  FOCAL = W * 1.62; CX = W / 2; CY = H * 0.545;
+}
+
+function poly(pts, fill, stroke, alpha) {
+  if (pts.length < 3) return;
+  ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+  ctx.globalAlpha = 1;
+}
+
+function drawCourt() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, TOK.far); grad.addColorStop(1, TOK.near);
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+
+  const c = (x, y) => project(v3(x, y, TABLE_Z));
+  const corners = [c(-HALF_LEN, -HALF_WID), c(-HALF_LEN, HALF_WID),
+                   c(HALF_LEN, HALF_WID), c(HALF_LEN, -HALF_WID)];
+  ctx.lineWidth = 1.5;
+  poly(corners, TOK.felt, null);
+
+  ctx.strokeStyle = TOK.feltEdge; ctx.lineWidth = 1.4; ctx.globalAlpha = .75;
+  ctx.beginPath();
+  corners.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.closePath(); ctx.stroke();
+  const m1 = c(-HALF_LEN, 0), m2 = c(HALF_LEN, 0);
+  ctx.beginPath(); ctx.moveTo(m1.x, m1.y); ctx.lineTo(m2.x, m2.y); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Where the fly is trying to land it -- the policy's aim input, made visible.
+  if (S.phase === 'rally' && S.lastHitter === 'you') {
+    const a = project(v3(S.aim.x, S.aim.y, TABLE_Z + 0.002));
+    ctx.strokeStyle = TOK.accent; ctx.globalAlpha = .5; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(a.x, a.y, 0.30 * a.s, 0.30 * a.s * 0.36, 0, 0, Math.PI * 2);
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+}
+
+function drawNet() {
+  const q = [project(v3(0, -HALF_WID, TABLE_Z)), project(v3(0, HALF_WID, TABLE_Z)),
+             project(v3(0, HALF_WID, TABLE_Z + NET_H)), project(v3(0, -HALF_WID, TABLE_Z + NET_H))];
+  poly(q, TOK.surface, null, .30);
+  ctx.strokeStyle = TOK.line; ctx.lineWidth = 1; ctx.globalAlpha = .85;
+  for (let i = 0; i <= 22; i++) {
+    const y = -HALF_WID + (2 * HALF_WID) * i / 22;
+    const a = project(v3(0, y, TABLE_Z)), b = project(v3(0, y, TABLE_Z + NET_H));
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  const t1 = project(v3(0, -HALF_WID, TABLE_Z + NET_H)), t2 = project(v3(0, HALF_WID, TABLE_Z + NET_H));
+  ctx.strokeStyle = TOK.feltEdge; ctx.lineWidth = 2; ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(t1.x, t1.y); ctx.lineTo(t2.x, t2.y); ctx.stroke();
+}
+
+function drawShadow(p, r) {
+  const h = Math.max(p.z - TABLE_Z, 0);
+  const s = project(v3(p.x, p.y, TABLE_Z + 0.003));
+  const spread = r * (1 + h * 0.9);
+  ctx.globalAlpha = clamp(0.42 - h * 0.16, 0.04, 0.42);
+  ctx.fillStyle = TOK.shadow;
+  ctx.beginPath();
+  ctx.ellipse(s.x, s.y, spread * s.s, spread * s.s * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.globalAlpha = 1;
+}
+
+function drawFly() {
+  const heading = Math.atan2(S.cmd ? Math.sin(S.cmd.az) : 0, S.cmd ? Math.cos(S.cmd.az) : 1);
+  const n = SHAPE.headings;
+  let idx = Math.round(((heading % (2 * Math.PI)) + 2 * Math.PI) / (2 * Math.PI) * n) % n;
+  const frame = SHAPE.frames[idx];
+  const pr = project(S.fly.p);
+  const s = pr.s;
+  const flap = 0.55 + 0.45 * Math.abs(Math.sin(S.wingPhase));
+
+  ctx.lineWidth = Math.max(0.6, s * 0.0016);
+  for (const grp of frame) {
+    const isWing = grp.layer === 'wing';
+    for (const pl of grp.polys) {
+      const pts = pl.map(([x, y]) => ({x: pr.x + x * s, y: pr.y - y * s * (isWing ? flap : 1)}));
+      poly(pts, grp.colour, isWing ? null : 'rgba(24,18,10,.55)', isWing ? 0.30 : 1);
+    }
+  }
+
+  // the paddle it is holding
+  if (S.cmd) {
+    const nrm = paddleNormal(S.cmd.az, S.cmd.el);
+    const c = project(v3(S.fly.p.x + nrm.x * 0.17, S.fly.p.y + nrm.y * 0.17, S.fly.p.z + nrm.z * 0.17));
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(Math.atan2(-nrm.z, nrm.y * 0.55));
+    ctx.globalAlpha = .92;
+    ctx.fillStyle = '#b33a2e';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, PADDLE_R * c.s * 0.30 + 1.5, PADDLE_R * c.s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+}
+
+function drawBall() {
+  const pr = project(S.ball.p);
+  const r = Math.max(2, BALL_R * pr.s);
+
+  ctx.strokeStyle = TOK.accent; ctx.lineWidth = Math.max(1, r * 0.45);
+  for (let i = 1; i < S.trail.length; i++) {
+    const a = project(S.trail[i - 1]), b = project(S.trail[i]);
+    ctx.globalAlpha = 0.05 + 0.22 * (i / S.trail.length);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  const g = ctx.createRadialGradient(pr.x - r * .35, pr.y - r * .4, r * .1, pr.x, pr.y, r);
+  g.addColorStop(0, '#fff3d6'); g.addColorStop(1, TOK.accent);
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(pr.x, pr.y, r, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawHumanPaddle() {
+  const p = S.paddle.p;
+  const n = humanNormal();
+  const c = project(p);
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(Math.atan2(-n.z * 0.8, -n.y * 0.8 + 0.001) + Math.PI / 2);
+  ctx.globalAlpha = .88;
+  ctx.fillStyle = TOK.ink;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, HUMAN_PADDLE_R * c.s, HUMAN_PADDLE_R * c.s * 0.34, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = TOK.accent; ctx.globalAlpha = S.paddle.down ? .9 : .35;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.ellipse(c.x, c.y, HUMAN_PADDLE_R * c.s, HUMAN_PADDLE_R * c.s * 0.34, 0, 0, Math.PI * 2);
+  ctx.stroke(); ctx.globalAlpha = 1;
+}
+
+function render() {
+  drawCourt();
+  drawShadow(S.fly.p, 0.16);
+  drawShadow(S.ball.p, BALL_R * 1.5);
+
+  const order = [
+    {d: project(S.fly.p).depth, f: drawFly},
+    {d: project(S.ball.p).depth, f: drawBall},
+    {d: project(S.paddle.p).depth, f: drawHumanPaddle},
+  ].sort((a, b) => b.d - a.d);
+
+  const netDepth = project(v3(0, 0, NET_H / 2)).depth;
+  let netDrawn = false;
+  for (const o of order) {
+    if (!netDrawn && o.d < netDepth) { drawNet(); netDrawn = true; }
+    o.f();
+  }
+  if (!netDrawn) drawNet();
+}
+
+/* ========================================================================
+   Panels
+   ===================================================================== */
+const NERVE = [['thrust x', 0], ['thrust y', 1], ['thrust z', 2],
+               ['yaw', 3], ['pitch', 4], ['swing', 5]];
+const nerveEl = document.getElementById('nerve');
+nerveEl.innerHTML = NERVE.map(([l, i]) =>
+  `<div class="nrow"><span class="lbl">${l}</span>
+   <span class="bar${i === 5 ? ' swing' : ''}"><span class="mid"></span><span class="fill" id="fill${i}"></span></span>
+   <span class="num" id="num${i}">0.00</span></div>`).join('');
+const fills = NERVE.map(([, i]) => document.getElementById('fill' + i));
+const nums = NERVE.map(([, i]) => document.getElementById('num' + i));
+
+const el = id => document.getElementById(id);
+function paintScore() {
+  el('pts-you').textContent = S.score.you;
+  el('pts-fly').textContent = S.score.fly;
+  el('side-you').classList.toggle('lead', S.score.you > S.score.fly);
+  el('side-fly').classList.toggle('lead', S.score.fly > S.score.you);
+  el('ro-ret').innerHTML = `${S.flyReturns}<small>/${S.flyChances}</small>`;
+}
+
+let panelT = 0;
+function paintPanels(dtReal) {
+  panelT += dtReal;
+  if (panelT < 0.08) return;
+  panelT = 0;
+  el('ro-ball').innerHTML = `${len(S.ball.v).toFixed(0)} <small>cm/s</small>`;
+  el('ro-fly').innerHTML = `${len(S.fly.v).toFixed(0)} <small>cm/s</small>`;
+  el('ro-rally').innerHTML = `${S.rally} <small>shots</small>`;
+  el('ro-best').innerHTML = `${S.best} <small>shots</small>`;
+  el('hud-elapsed').textContent = S.flyTime.toFixed(2) + ' s';
+  if (S.cmd) {
+    for (let i = 0; i < 6; i++) {
+      const v = clamp(S.cmd.raw[i], -1, 1);
+      const f = fills[i];
+      f.style.left = (v >= 0 ? 50 : 50 + v * 50) + '%';
+      f.style.width = Math.abs(v) * 50 + '%';
+      nums[i].textContent = v.toFixed(2);
+    }
+  }
+}
+
+const callEl = el('call'), callBig = el('call-big'), callSub = el('call-sub');
+function paintCall() {
+  if (S.phase === 'dead' && S.deadMsg) {
+    callBig.textContent = S.deadMsg[0];
+    callSub.textContent = S.deadMsg[1];
+    callEl.hidden = false;
+  } else if (S.phase === 'serve') {
+    callBig.textContent = '';
+    callSub.textContent = 'your serve — swing through the ball as it drops';
+    callEl.hidden = false;
+  } else {
+    callEl.hidden = true;
+  }
+}
+
+/* ========================================================================
+   Input
+   ===================================================================== */
+function pointerTo(e) {
+  const r = cv.getBoundingClientRect();
+  const u = clamp((e.clientX - r.left) / r.width, 0, 1);
+  const v = clamp((e.clientY - r.top) / r.height, 0, 1);
+  S.paddle.target.y = (u - 0.5) * 2 * (HALF_WID + 0.30);
+  S.paddle.target.z = 0.04 + (1 - v) * 1.45;
+}
+cv.addEventListener('pointermove', e => { pointerTo(e); e.preventDefault(); });
+cv.addEventListener('pointerdown', e => { S.paddle.down = true; pointerTo(e); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointerup', () => { S.paddle.down = false; });
+cv.addEventListener('pointercancel', () => { S.paddle.down = false; });
+
+function seg(id, fn) {
+  const box = el(id);
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...box.querySelectorAll('button')].forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    fn(parseFloat(b.dataset.v), b);
+  });
+}
+seg('seg-speed', v => { S.timeScale = v; el('hud-scale').textContent = '×' + Math.round(1 / v); });
+seg('seg-diff', v => { S.difficulty = v | 0; });
+el('btn-reset').addEventListener('click', resetMatch);
+el('btn-pause').addEventListener('click', e => {
+  S.paused = !S.paused;
+  e.target.textContent = S.paused ? 'Resume' : 'Pause';
+});
+
+/* ========================================================================
+   Loop
+   ===================================================================== */
+let lastT = performance.now();
+function frame(now) {
+  const dtReal = Math.min((now - lastT) / 1000, 0.05);
+  lastT = now;
+
+  if (!S.paused) {
+    let budget = dtReal * S.timeScale;
+    let guard = 0;
+    while (budget > 0 && guard++ < 40) {
+      const dt = Math.min(DT, budget);
+      tick(dt);
+      budget -= dt;
+    }
+    if (S.phase === 'dead') {
+      S.phaseT += dtReal;
+      if (S.phaseT > 1.35) { S.deadMsg = null; serve(); }
+    }
+    S.trail.push(v3(S.ball.p.x, S.ball.p.y, S.ball.p.z));
+    if (S.trail.length > 22) S.trail.shift();
+  }
+
+  render();
+  paintPanels(dtReal);
+  paintCall();
+  requestAnimationFrame(frame);
+}
+
+/* ---- static panels ---- */
+(function fillSpec() {
+  const st = SHAPE.stats || {};
+  const rows = [
+    ['Body mass', (st.mass_g * 1000).toFixed(2) + ' mg'],
+    ['Body length', (st.body_length_cm * 10).toFixed(2) + ' mm'],
+    ['Wingspan', (st.wingspan_cm * 10).toFixed(2) + ' mm'],
+    ['Degrees of freedom', st.nv],
+    ['Actuators', st.nu],
+    ['Table length', (HALF_LEN * 20).toFixed(0) + ' mm'],
+    ['Net height', (NET_H * 10).toFixed(0) + ' mm'],
+    ['Policy weights', (B.policy.w1.length * B.policy.w1[0].length +
+                        B.policy.w2.length * B.policy.w2[0].length +
+                        B.policy.w3.length * B.policy.w3[0].length +
+                        B.policy.b1.length + B.policy.b2.length + B.policy.b3.length).toLocaleString()],
+  ];
+  el('spec').innerHTML = rows.map(([k, v]) =>
+    `<div><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+
+  const ev = B.stats || {};
+  if (ev.train_return_rate !== undefined) {
+    el('note-eval').textContent =
+      `In training it landed ${(ev.train_return_rate * 100).toFixed(0)}% of returns on the far half; ` +
+      `replayed on the full 109-DoF body in MuJoCo, the reduced flight model it learned in tracks the ` +
+      `real animal to ${ev.rms_divergence_cm.toFixed(3)} cm RMS over a rally.`;
+  }
+})();
+
+readTokens();
+resize();
+window.addEventListener('resize', () => { resize(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+
+resetMatch();
+requestAnimationFrame(frame);
+})();
+</script>

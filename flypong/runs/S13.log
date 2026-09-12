@@ -1,0 +1,9 @@
+gen    1  score   -6.56  contact  5.1%  returned-in  0.4%  [no-contact=486 returned-in=2 returned-out=12 into-net=11 own-half=1]      1s
+gen  100  score   -0.69  contact 24.8%  returned-in  9.2%  [no-contact=385 returned-in=47 returned-out=35 into-net=23 own-half=22]     29s
+gen  200  score    5.71  contact 47.7%  returned-in 27.7%  [no-contact=268 returned-in=142 returned-out=14 into-net=55 own-half=33]     63s
+gen  300  score    6.00  contact 50.8%  returned-in 28.3%  [no-contact=252 returned-in=145 returned-out=17 into-net=51 own-half=47]     90s
+gen  400  score    6.18  contact 55.1%  returned-in 25.6%  [no-contact=230 returned-in=131 returned-out=32 into-net=57 own-half=62]    117s
+gen  500  score    7.10  contact 55.3%  returned-in 29.7%  [no-contact=229 returned-in=152 returned-out=22 into-net=53 own-half=56]    135s
+gen  600  score    8.27  contact 60.7%  returned-in 31.8%  [no-contact=201 returned-in=163 returned-out=35 into-net=66 own-half=47]    153s
+gen  700  score    6.64  contact 54.3%  returned-in 28.3%  [no-contact=234 returned-in=145 returned-out=36 into-net=61 own-half=36]    171s
+gen  800  score    9.10  contact 63.1%  returned-in 35.5%  [no-contact=189 returned-in=182 returned-out=23 into-net=72 own-half=46]    189s
