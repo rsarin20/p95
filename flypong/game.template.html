@@ -148,12 +148,20 @@
   .call {
     position: absolute; inset: 0;
     display: grid; place-content: center; text-align: center;
-    pointer-events: none; gap: 4px;
+    pointer-events: none;
+  }
+  .call > div {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 10px 22px 12px;
+    display: grid; gap: 2px;
   }
   .call .big {
     font-family: var(--f-display); font-weight: 700;
-    font-size: clamp(22px, 4vw, 34px); letter-spacing: -.01em;
+    font-size: clamp(20px, 3vw, 28px); letter-spacing: -.01em;
+    line-height: 1.1;
   }
+  .call .big:empty { display: none; }
   .call .sub { font-family: var(--f-data); font-size: 12px; color: var(--muted); }
   .call[hidden] { display: none; }
 
@@ -242,7 +250,7 @@
 
   <div class="chamber">
     <canvas id="cv" width="1200" height="740" aria-label="Simulation chamber: a fruit fly playing table tennis"></canvas>
-    <div class="call" id="call" hidden><div class="big" id="call-big"></div><div class="sub" id="call-sub"></div></div>
+    <div class="call" id="call" hidden><div><div class="big" id="call-big"></div><div class="sub" id="call-sub"></div></div></div>
     <div class="hud">
       <div id="hud-left">move to aim · hold to swing hard</div>
       <div class="clock">fly time <b id="hud-scale">×8</b> slower &nbsp;·&nbsp; <span id="hud-elapsed">0.00 s</span> elapsed in the chamber</div>
@@ -318,6 +326,7 @@ const C = B.constants, NET = B.policy, SHAPE = B.shape;
    same order of operations, so the policy meets exactly the world it was
    trained in.
    ===================================================================== */
+/* PHYSICS-BEGIN */
 const {HALF_LEN, HALF_WID, TABLE_Z, NET_H, G, BALL_R, BALL_DRAG, E_TABLE,
        MU_TABLE, PADDLE_R, HUMAN_PADDLE_R, E_PADDLE, MU_PADDLE, SWING_MAX,
        SWING_MIN, A_MAX, FLY_DRAG, V_MAX, FLY_Z_MIN, FLY_X_MAX, FLY_ROAM,
@@ -358,22 +367,32 @@ function paddleNormal(az, el) {
   return v3(ce * Math.cos(az), ce * Math.sin(az), Math.sin(el));
 }
 
-function paddleHit(b, centre, n, vel, swing, radius) {
-  const d = v3(b.p.x - centre.x, b.p.y - centre.y, b.p.z - centre.z);
-  const dn = dot(d, n);
-  const radial2 = dot(d, d) - dn * dn;
-  if (Math.abs(dn) >= BALL_R + 0.04 || radial2 >= radius * radius) return false;
+const THICK = BALL_R + 0.02;
 
-  const vrel = v3(b.v.x - vel.x, b.v.y - vel.y, b.v.z - vel.z);
-  const closing = dot(vrel, n);
-  if (closing >= 0) return false;
+function paddleHit(b, centre, n, vel, swing, radius, dt) {
+  // Swept, not a point-in-slab test: at 500 Hz a ball doing 100 cm/s covers
+  // twice the slab thickness per tick and would pass straight through.
+  const rel = v3(b.v.x - vel.x, b.v.y - vel.y, b.v.z - vel.z);
+  const d0 = v3(b.p.x - centre.x, b.p.y - centre.y, b.p.z - centre.z);
+  const s0 = dot(d0, n);
+  const step = dot(rel, n) * dt;
+  if (step >= 0) return false;
 
+  const inside = s0 <= THICK && s0 >= -THICK;
+  const uRaw = (THICK - s0) / step;
+  if (!inside && !(uRaw >= 0 && uRaw <= 1)) return false;
+  const u = inside ? 0 : clamp(uRaw, 0, 1);
+
+  const dc = v3(d0.x + rel.x * u * dt, d0.y + rel.y * u * dt, d0.z + rel.z * u * dt);
+  const dcn = dot(dc, n);
+  if (dot(dc, dc) - dcn * dcn >= radius * radius) return false;
+
+  const closing = dot(rel, n);
   const s = swing * SWING_MAX;
   for (const k of ['x', 'y', 'z']) {
     const vn = closing * n[k];
-    const vt = vrel[k] - vn;
-    b.v[k] = vt * (1 - MU_PADDLE) - E_PADDLE * vn + vel[k] + s * n[k];
-    b.p[k] = centre[k] + (d[k] - dn * n[k]) + n[k] * (BALL_R + 0.045);
+    b.v[k] = (rel[k] - vn) * (1 - MU_PADDLE) - E_PADDLE * vn + vel[k] + s * n[k];
+    b.p[k] = centre[k] + (dc[k] - dcn * n[k]) + n[k] * (BALL_R + 0.045);
   }
   return true;
 }
@@ -451,12 +470,13 @@ function runPolicy(b, f, aim, hitFlag) {
     raw: act,
   };
 }
+/* PHYSICS-END */
 
 /* ========================================================================
    Camera -- matches measure_fly.py, so the stored silhouettes line up with
    the projected court.
    ===================================================================== */
-const EYE = v3(6.0, 0, 3.2), TARGET = v3(0, 0, 0.30);
+const EYE = v3(4.6, 0, 4.0), TARGET = v3(0, 0, 0.25);
 const fwd = (() => { const d = v3(EYE.x - TARGET.x, EYE.y - TARGET.y, EYE.z - TARGET.z);
                      const l = len(d); return v3(d.x / l, d.y / l, d.z / l); })();
 const right = (() => { const r = v3(-fwd.y, fwd.x, 0); const l = Math.hypot(r.x, r.y);
@@ -486,7 +506,7 @@ const S = {
   flyHit: false,
   lastHitter: null,
   bounces: 0,
-  phase: 'serve',        // serve | rally | dead
+  phase: 'ready',        // ready | rally | dead
   phaseT: 0,
   score: {you: 0, fly: 0},
   rally: 0, best: 0,
@@ -506,19 +526,49 @@ function newPoint(who) {
   paintScore();
 }
 
+/* The serve is launched for you.  Hitting a toss is not where the interest in
+   this is, and a machine serve keeps every rally inside the envelope the
+   policy was trained on -- the fly gets a fair ball, you get the rally. */
+const SERVE_BAND = {x: [-50, 22], y: [0, 26], z: [15, 25]};
+const SERVE_SPREAD = 0.72;
+
 function serve() {
-  S.ball.p = v3(S.paddle.p.x - 0.15, S.paddle.p.y, S.paddle.p.z + 0.30);
-  S.ball.v = v3(-6, 0, 52);
-  S.lastHitter = null; S.bounces = 0; S.flyHit = false;
+  const band = k => SERVE_BAND[k][0] + SERVE_BAND[k][1] * SERVE_SPREAD * (Math.random() * 2 - 1);
+  S.ball.p = v3(1.90, (Math.random() * 2 - 1) * 0.70, 0.55 + Math.random() * 0.45);
+  S.ball.v = v3(band('x'), band('y'), band('z'));
+
+  const t = S.ball.p.x / -S.ball.v.x;                    // clear the net
+  const zNet = S.ball.p.z + S.ball.v.z * t - 0.5 * G * t * t;
+  if (zNet < 0.42) S.ball.v.z += (0.42 - zNet) / t;
+
+  S.lastHitter = 'you'; S.bounces = 0; S.flyHit = false;
   S.rally = 0; S.trail.length = 0;
-  S.phase = 'serve'; S.phaseT = 0;
+  S.flyChances++;
+  chooseAim();
+  S.phase = 'rally'; S.phaseT = 0;
+  paintScore();
+}
+
+function readyUp() { S.phase = 'ready'; S.phaseT = 0; S.deadMsg = null; }
+
+/* Station-keeping between points: a critically damped hold on the ready spot,
+   with gravity carried by the thrust command exactly as the policy has to. */
+const READY = v3(-1.50, 0, 0.55);
+const IDLE_KP = 1800, IDLE_KD = 85;
+
+function idleThrust(f) {
+  return v3(
+    clamp(((READY.x - f.p.x) * IDLE_KP - f.v.x * IDLE_KD) / A_MAX, -1, 1),
+    clamp(((READY.y - f.p.y) * IDLE_KP - f.v.y * IDLE_KD) / A_MAX, -1, 1),
+    clamp((G + (READY.z - f.p.z) * IDLE_KP - f.v.z * IDLE_KD) / A_MAX, -1, 1));
 }
 
 function resetMatch() {
   S.score.you = 0; S.score.fly = 0; S.best = 0;
   S.flyChances = 0; S.flyReturns = 0; S.flyTime = 0;
   S.fly.p = v3(-1.5, 0, 0.55); S.fly.v = v3(0, 0, 0);
-  serve(); paintScore();
+  S.ball.p = v3(2.5, 0, 0.6); S.ball.v = v3(0, 0, 0);
+  readyUp(); paintScore();
 }
 
 /* Pick where the fly will try to put the ball.  The policy takes an aim point
@@ -541,7 +591,7 @@ function tick(dt) {
   // --- human paddle: follows the pointer, tracks the ball in depth --------
   const pad = S.paddle;
   let wantX = 2.05;
-  if (S.ball.p.x > 0.2) wantX = clamp(S.ball.p.x + 0.10, 0.95, 2.55);
+  if (S.phase === 'rally' && S.ball.p.x > 0.2) wantX = clamp(S.ball.p.x + 0.10, 0.95, 2.55);
   pad.target.x = wantX;
 
   const k = 1 - Math.exp(-dt * 26);
@@ -552,16 +602,29 @@ function tick(dt) {
   pad.v = v3((pad.p.x - prev.x) / dt, (pad.p.y - prev.y) / dt, (pad.p.z - prev.z) / dt);
 
   // --- fly: the trained policy ------------------------------------------
+  // Between points there is no ball in play, and a parked ball is a state the
+  // policy never saw in training -- asked to interpret one it saturates and
+  // flies into the back wall.  So the idle is scripted: hold station at the
+  // ready spot until a ball exists to read.  The policy flies every live ball,
+  // including its own recovery after a shot, which it *was* trained for.
+  if (S.phase !== 'rally') {
+    const t = idleThrust(S.fly);
+    S.cmd = {thrust: t, az: 0, el: 0.1, swing: 0, raw: [t.x, t.y, t.z, 0, 0, 0]};
+    stepFly(S.fly, t, dt);
+    return;
+  }
+
   const cmd = runPolicy(S.ball, S.fly, S.aim, S.flyHit ? 1 : 0);
   S.cmd = cmd;
   stepFly(S.fly, cmd.thrust, dt);
 
   const flyN = paddleNormal(cmd.az, cmd.el);
   if (S.phase === 'rally' && S.lastHitter === 'you' && S.ball.p.x < 0) {
-    if (paddleHit(S.ball, S.fly.p, flyN, S.fly.v, cmd.swing, PADDLE_R)) {
+    if (paddleHit(S.ball, S.fly.p, flyN, S.fly.v, cmd.swing, PADDLE_R, dt)) {
       S.lastHitter = 'fly'; S.flyHit = true; S.bounces = 0; S.rally++;
       S.flyReturns++;
       tameShot(1);
+      paintScore();
     }
   }
 
@@ -569,9 +632,8 @@ function tick(dt) {
   const hn = humanNormal();
   if (S.ball.p.x > 0.2 && S.lastHitter !== 'you') {
     const swing = clamp(0.12 + len(pad.v) / 240 + (pad.down ? 0.42 : 0), SWING_MIN, 1);
-    if (paddleHit(S.ball, pad.p, hn, pad.v, swing, HUMAN_PADDLE_R)) {
+    if (paddleHit(S.ball, pad.p, hn, pad.v, swing, HUMAN_PADDLE_R, dt)) {
       S.lastHitter = 'you'; S.flyHit = false; S.bounces = 0; S.rally++;
-      if (S.phase === 'serve') S.phase = 'rally';
       tameShot(-1);
       chooseAim();
       S.flyChances++;
@@ -582,11 +644,6 @@ function tick(dt) {
   // --- ball --------------------------------------------------------------
   const ev = stepBall(S.ball, dt);
 
-  if (S.phase === 'serve') {
-    // A missed toss costs nothing -- just toss again.
-    if (S.ball.p.z < TABLE_Z - 0.3 || ev.out || ev.bounced) serve();
-    return;
-  }
   if (S.phase !== 'rally') return;
 
   const opp = S.lastHitter === 'you' ? 'fly' : 'you';
@@ -617,9 +674,9 @@ function tick(dt) {
 function tameShot(dir) {
   const v = S.ball.v;
   if (dir < 0) {                       // towards the fly
-    v.x = clamp(v.x, -78, -26);
-    v.y = clamp(v.y, -30, 30);
-    v.z = clamp(v.z, -12, 46);
+    v.x = clamp(v.x, -68, -32);
+    v.y = clamp(v.y, -22, 22);
+    v.z = clamp(v.z, -6, 36);
     const t = S.ball.p.x / Math.max(-v.x, 1e-3);
     const zNet = S.ball.p.z + v.z * t - 0.5 * G * t * t;
     if (zNet < 0.42) v.z += (0.42 - zNet) / t;
@@ -655,11 +712,11 @@ function readTokens() {
 function resize() {
   const rect = cv.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  W = Math.round(rect.width); H = Math.round(rect.width * 0.617);
+  W = Math.round(rect.width); H = Math.round(rect.width * 0.70);
   cv.width = W * dpr; cv.height = H * dpr;
   cv.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  FOCAL = W * 1.62; CX = W / 2; CY = H * 0.545;
+  FOCAL = W * 0.96; CX = W / 2; CY = H * 0.426;
 }
 
 function poly(pts, fill, stroke, alpha) {
@@ -718,6 +775,26 @@ function drawNet() {
   ctx.beginPath(); ctx.moveTo(t1.x, t1.y); ctx.lineTo(t2.x, t2.y); ctx.stroke();
 }
 
+/* A tilted disc in perspective: the silhouette of a circle with normal n is
+   an ellipse whose major axis is perpendicular to the projected normal, and
+   whose minor axis shrinks with the normal's component along the view axis. */
+function drawDisc(c3, n, radius, fill, stroke, alpha) {
+  const pr = project(c3);
+  const nx = dot(n, right), ny = dot(n, upv), nz = dot(n, fwd);
+  const major = radius * pr.s;
+  const minor = Math.max(major * Math.abs(nz), major * 0.12);
+  ctx.save();
+  ctx.translate(pr.x, pr.y);
+  ctx.rotate(Math.atan2(-ny, nx) + Math.PI / 2);
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, major, minor, 0, 0, Math.PI * 2);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.6; ctx.stroke(); }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
 function drawShadow(p, r) {
   const h = Math.max(p.z - TABLE_Z, 0);
   const s = project(v3(p.x, p.y, TABLE_Z + 0.003));
@@ -747,19 +824,12 @@ function drawFly() {
     }
   }
 
-  // the paddle it is holding
+  // the paddle it is holding, on the front of the thorax
   if (S.cmd) {
-    const nrm = paddleNormal(S.cmd.az, S.cmd.el);
-    const c = project(v3(S.fly.p.x + nrm.x * 0.17, S.fly.p.y + nrm.y * 0.17, S.fly.p.z + nrm.z * 0.17));
-    ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.rotate(Math.atan2(-nrm.z, nrm.y * 0.55));
-    ctx.globalAlpha = .92;
-    ctx.fillStyle = '#b33a2e';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, PADDLE_R * c.s * 0.30 + 1.5, PADDLE_R * c.s, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore(); ctx.globalAlpha = 1;
+    const n = paddleNormal(S.cmd.az, S.cmd.el);
+    const c = v3(S.fly.p.x + n.x * 0.20, S.fly.p.y + n.y * 0.20, S.fly.p.z + n.z * 0.20 - 0.02);
+    drawDisc(c, n, PADDLE_R, '#b33a2e', null, 0.55);
+    drawDisc(c, n, PADDLE_R, null, '#8e2c22', 0.95);
   }
 }
 
@@ -767,10 +837,11 @@ function drawBall() {
   const pr = project(S.ball.p);
   const r = Math.max(2, BALL_R * pr.s);
 
-  ctx.strokeStyle = TOK.accent; ctx.lineWidth = Math.max(1, r * 0.45);
+  ctx.strokeStyle = TOK.accent; ctx.lineWidth = Math.max(0.8, r * 0.30);
+  ctx.lineCap = 'round';
   for (let i = 1; i < S.trail.length; i++) {
     const a = project(S.trail[i - 1]), b = project(S.trail[i]);
-    ctx.globalAlpha = 0.05 + 0.22 * (i / S.trail.length);
+    ctx.globalAlpha = 0.02 + 0.13 * (i / S.trail.length);
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
   ctx.globalAlpha = 1;
@@ -782,25 +853,11 @@ function drawBall() {
 }
 
 function drawHumanPaddle() {
-  const p = S.paddle.p;
+  // Translucent: it sits between the camera and the table, and a solid disc
+  // this close hides the half of the court you are trying to aim at.
   const n = humanNormal();
-  const c = project(p);
-  ctx.save();
-  ctx.translate(c.x, c.y);
-  ctx.rotate(Math.atan2(-n.z * 0.8, -n.y * 0.8 + 0.001) + Math.PI / 2);
-  ctx.globalAlpha = .88;
-  ctx.fillStyle = TOK.ink;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, HUMAN_PADDLE_R * c.s, HUMAN_PADDLE_R * c.s * 0.34, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  ctx.globalAlpha = 1;
-
-  ctx.strokeStyle = TOK.accent; ctx.globalAlpha = S.paddle.down ? .9 : .35;
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.ellipse(c.x, c.y, HUMAN_PADDLE_R * c.s, HUMAN_PADDLE_R * c.s * 0.34, 0, 0, Math.PI * 2);
-  ctx.stroke(); ctx.globalAlpha = 1;
+  drawDisc(S.paddle.p, n, HUMAN_PADDLE_R, TOK.ink, null, S.paddle.down ? 0.42 : 0.26);
+  drawDisc(S.paddle.p, n, HUMAN_PADDLE_R, null, TOK.accent, S.paddle.down ? 0.95 : 0.55);
 }
 
 function render() {
@@ -872,9 +929,9 @@ function paintCall() {
     callBig.textContent = S.deadMsg[0];
     callSub.textContent = S.deadMsg[1];
     callEl.hidden = false;
-  } else if (S.phase === 'serve') {
+  } else if (S.phase === 'ready') {
     callBig.textContent = '';
-    callSub.textContent = 'your serve — swing through the ball as it drops';
+    callSub.textContent = 'serving…';
     callEl.hidden = false;
   } else {
     callEl.hidden = true;
@@ -930,7 +987,10 @@ function frame(now) {
     }
     if (S.phase === 'dead') {
       S.phaseT += dtReal;
-      if (S.phaseT > 1.35) { S.deadMsg = null; serve(); }
+      if (S.phaseT > 1.35) readyUp();
+    } else if (S.phase === 'ready') {
+      S.phaseT += dtReal;
+      if (S.phaseT > 0.85) serve();
     }
     S.trail.push(v3(S.ball.p.x, S.ball.p.y, S.ball.p.z));
     if (S.trail.length > 22) S.trail.shift();

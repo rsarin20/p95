@@ -31,7 +31,7 @@ MU_TABLE = 0.12      # tangential loss off the table
 
 # --- paddles ---------------------------------------------------------------
 PADDLE_R = 0.16      # fly's paddle (about half its wingspan)
-HUMAN_PADDLE_R = 0.26
+HUMAN_PADDLE_R = 0.22
 E_PADDLE = 0.85
 MU_PADDLE = 0.35
 SWING_MAX = 70.0     # cm/s of impulse a full swing adds along the normal

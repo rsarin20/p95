@@ -111,7 +111,7 @@ def main(menagerie, out_path, headings):
     }
 
     # The game camera sits behind the human and looks down the table.
-    eye, target = np.array([6.0, 0.0, 3.2]), np.array([0.0, 0.0, 0.30])
+    eye, target = np.array([4.6, 0.0, 4.0]), np.array([0.0, 0.0, 0.25])
     fwd = (eye - target) / np.linalg.norm(eye - target)
     right = np.cross([0, 0, 1.0], fwd)
     right /= np.linalg.norm(right)
