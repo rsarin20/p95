@@ -1,0 +1,28 @@
+{
+ "rms_divergence_cm": 0.04924438193341868,
+ "rms_divergence_all_cm": 0.31212113804630787,
+ "rms_divergence_with_flap_cm": 0.29989757987776805,
+ "unconstrained_rallies": 9,
+ "body_length_cm": 0.301,
+ "mujoco_return_rate": 0.4,
+ "train_return_rate": 0.505,
+ "mujoco_rallies": 40,
+ "mujoco_outcomes": {
+  "no-contact": 19,
+  "returned-out": 1,
+  "returned-in": 16,
+  "into-net": 3,
+  "own-half": 1
+ },
+ "model": {
+  "nq": 116,
+  "nv": 114,
+  "nu": 78,
+  "ngeom": 163,
+  "fly_mass_mg": 0.9946214691323194
+ },
+ "match_contact_rate": 0.952,
+ "match_return_rate": 0.67875,
+ "match_net_rate": 0.21475,
+ "policy": "runs/S11.npy"
+}

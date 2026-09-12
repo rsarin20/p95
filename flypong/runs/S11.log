@@ -22,3 +22,11 @@ gen 2000  score    9.84  contact 66.6%  returned-in 36.5%  [no-contact=171 retur
 gen 2100  score   11.00  contact 72.1%  returned-in 40.2%  [no-contact=143 returned-in=206 returned-out=52 into-net=79 own-half=32]    787s
 gen 2200  score   11.07  contact 77.3%  returned-in 35.9%  [no-contact=116 returned-in=184 returned-out=64 into-net=95 own-half=53]    839s
 gen 2300  score   10.59  contact 74.8%  returned-in 36.5%  [no-contact=129 returned-in=187 returned-out=44 into-net=84 own-half=68]    885s
+gen 2400  score   10.16  contact 72.9%  returned-in 35.0%  [no-contact=139 returned-in=179 returned-out=50 into-net=91 own-half=53]    935s
+gen 2500  score   11.59  contact 77.1%  returned-in 39.3%  [no-contact=117 returned-in=201 returned-out=56 into-net=101 own-half=37]    988s
+gen 2600  score   12.45  contact 83.0%  returned-in 40.0%  [no-contact=87 returned-in=205 returned-out=57 into-net=106 own-half=57]   1048s
+gen 2700  score   12.47  contact 79.9%  returned-in 42.6%  [no-contact=103 returned-in=218 returned-out=57 into-net=100 own-half=34]   1094s
+gen 2800  score   12.51  contact 77.5%  returned-in 43.6%  [no-contact=115 returned-in=223 returned-out=43 into-net=92 own-half=39]   1139s
+gen 2900  score   13.06  contact 78.7%  returned-in 46.1%  [no-contact=109 returned-in=236 returned-out=35 into-net=87 own-half=45]   1173s
+gen 3000  score   11.40  contact 76.8%  returned-in 39.5%  [no-contact=119 returned-in=202 returned-out=59 into-net=85 own-half=47]   1206s
+best score 13.06 -> runs/S11.npy

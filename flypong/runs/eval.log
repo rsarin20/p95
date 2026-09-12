@@ -1,0 +1,20 @@
+scene: nq=116 nv=114 nu=78 ngeom=163  fly mass 0.995 mg
+
+open-loop replay over 6 rallies (54 ms each)
+  RMS divergence   0.3664 cm   (121.7% of a body length)
+  final divergence 0.8085 cm
+  with a canned 220 Hz wingbeat layered on top: 0.3489 cm RMS
+    (a naive sinusoidal flap is not lift-neutral in MuJoCo's fluid model --
+     real flight needs a learned wing gait, which is what flybody's own
+     flight controller provides.)
+
+closed-loop on the full body, 30 rallies
+  no-contact      13  43.3%
+  returned-in     10  33.3%
+  into-net         3  10.0%
+  own-half         2   6.7%
+  returned-out     2   6.7%
+
+same policy, reduced model: returned-in 48.0% (vs 33.3% on the full body)
+
+wrote runs/eval.json

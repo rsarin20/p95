@@ -252,7 +252,7 @@
     <canvas id="cv" width="1200" height="740" aria-label="Simulation chamber: a fruit fly playing table tennis"></canvas>
     <div class="call" id="call" hidden><div><div class="big" id="call-big"></div><div class="sub" id="call-sub"></div></div></div>
     <div class="hud">
-      <div id="hud-left">move to aim · hold to swing hard</div>
+      <div id="hud-left">move to aim · hold to swing hard · first to 11</div>
       <div class="clock">fly time <b id="hud-scale">×8</b> slower &nbsp;·&nbsp; <span id="hud-elapsed">0.00 s</span> elapsed in the chamber</div>
     </div>
   </div>
@@ -515,14 +515,23 @@ const S = {
   trail: [],
   wingPhase: 0,
   paused: false,
+  matchOver: null,
   timeScale: 0.125,
   difficulty: 1,
 };
+
+const TARGET_SCORE = 11;
 
 function newPoint(who) {
   S.phase = 'dead'; S.phaseT = 0;
   if (who === 'you') S.score.you++; else S.score.fly++;
   S.best = Math.max(S.best, S.rally);
+
+  const {you, fly} = S.score;
+  const top = Math.max(you, fly);
+  if (top >= TARGET_SCORE && Math.abs(you - fly) >= 2) {
+    S.matchOver = you > fly ? 'you' : 'fly';
+  }
   paintScore();
 }
 
@@ -564,7 +573,7 @@ function idleThrust(f) {
 }
 
 function resetMatch() {
-  S.score.you = 0; S.score.fly = 0; S.best = 0;
+  S.score.you = 0; S.score.fly = 0; S.best = 0; S.matchOver = null;
   S.flyChances = 0; S.flyReturns = 0; S.flyTime = 0;
   S.fly.p = v3(-1.5, 0, 0.55); S.fly.v = v3(0, 0, 0);
   S.ball.p = v3(2.5, 0, 0.6); S.ball.v = v3(0, 0, 0);
@@ -987,7 +996,14 @@ function frame(now) {
     }
     if (S.phase === 'dead') {
       S.phaseT += dtReal;
-      if (S.phaseT > 1.35) readyUp();
+      if (S.matchOver) {
+        S.deadMsg = S.matchOver === 'you'
+          ? ['You win the match', `${S.score.you}–${S.score.fly} · it is 0.98 mg and it nearly had you`]
+          : ['The fly wins the match', `${S.score.fly}–${S.score.you} · best rally ${S.best} shots`];
+        if (S.phaseT > 4.0) { S.matchOver = null; resetMatch(); }
+      } else if (S.phaseT > 1.35) {
+        readyUp();
+      }
     } else if (S.phase === 'ready') {
       S.phaseT += dtReal;
       if (S.phaseT > 0.85) serve();
@@ -1022,11 +1038,14 @@ function frame(now) {
     `<div><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 
   const ev = B.stats || {};
-  if (ev.train_return_rate !== undefined) {
+  if (ev.match_return_rate !== undefined) {
     el('note-eval').textContent =
-      `In training it landed ${(ev.train_return_rate * 100).toFixed(0)}% of returns on the far half; ` +
-      `replayed on the full 109-DoF body in MuJoCo, the reduced flight model it learned in tracks the ` +
-      `real animal to ${ev.rms_divergence_cm.toFixed(3)} cm RMS over a rally.`;
+      `Against serves like the ones it gets here it reaches ` +
+      `${(ev.match_contact_rate * 100).toFixed(0)}% of balls and lands ` +
+      `${(ev.match_return_rate * 100).toFixed(0)}% of its returns on your half. Replay those same ` +
+      `flight commands into the full ${ev.model.nv}-coordinate body in MuJoCo and the reduced model ` +
+      `it trained against tracks the real animal to ${ev.rms_divergence_cm.toFixed(2)} cm — about a ` +
+      `sixth of a body length.`;
   }
 })();
 

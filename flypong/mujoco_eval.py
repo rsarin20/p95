@@ -32,7 +32,7 @@ def reduced_rally(fn, rng, spread=1.0):
     """One rally in the training dynamics.  Returns the full command trace."""
     bp, bv, fp, fv, aim = reset(rng, 1, spread)
     hit = np.zeros(1, bool)
-    rec = {'thrust': [], 'normal': [], 'swing': [], 'fly': [], 'ball': []}
+    rec = {'thrust': [], 'normal': [], 'swing': [], 'fly': [], 'flyv': [], 'ball': []}
     outcome, land = 'no-contact', None
 
     for _ in range(260):
@@ -44,6 +44,7 @@ def reduced_rally(fn, rng, spread=1.0):
         rec['normal'].append(nrm[0].copy())
         rec['swing'].append(float(swing[0]))
         rec['fly'].append(fp[0].copy())
+        rec['flyv'].append(fv[0].copy())
         rec['ball'].append(bp[0].copy())
 
         fp, fv = P.step_fly(fp, fv, thrust)
@@ -67,8 +68,28 @@ def reduced_rally(fn, rng, spread=1.0):
 
     rec = {k: np.array(v) for k, v in rec.items()}
     rec.update(outcome=outcome, land=land, start_fly=rec['fly'][0],
+               start_vel=rec['flyv'][0],
                start_ball=rec['ball'][0], bv0=bv, aim=aim[0])
     return rec
+
+
+def first_limit(rec):
+    """Index at which a reduced-model *kinematic* limit first bites.
+
+    The training world clamps the fly's speed and fences it onto its own side
+    of the net.  Those are rules of the game, not physics, and the MuJoCo body
+    has no such fences -- so past this point the two are no longer simulating
+    the same problem and comparing them says nothing about the dynamics.
+    """
+    fp, fv = rec['fly'], rec['flyv']
+    sp = np.linalg.norm(fv, axis=1)
+    hit = ((fp[:, 2] <= P.FLY_Z_MIN + 1e-9) | (fp[:, 2] >= 2.6 - 1e-9)
+           | (fp[:, 0] >= P.FLY_X_MAX - 1e-9)
+           | (fp[:, 0] <= -P.HALF_LEN - P.FLY_ROAM + 1e-9)
+           | (np.abs(fp[:, 1]) >= P.HALF_WID + P.FLY_ROAM - 1e-9)
+           | (sp >= P.V_MAX - 1e-6))
+    idx = np.nonzero(hit)[0]
+    return int(idx[0]) if len(idx) else len(fp)
 
 
 def replay_open_loop(model, data, ids, rec, flap_amp=0.0):
@@ -84,7 +105,10 @@ def replay_open_loop(model, data, ids, rec, flap_amp=0.0):
     mujoco.mj_resetData(model, data)
     if model.nkey:
         mujoco.mj_resetDataKeyframe(model, data, 0)
-    scene.place_fly(model, data, rec['start_fly'])
+    # Match the reduced rally's initial velocity, not just its position -- the
+    # fly is already moving when the trace starts, and 12 cm/s of unmatched
+    # initial velocity is 0.6 cm of drift over a rally all by itself.
+    scene.place_fly(model, data, rec['start_fly'], rec['start_vel'])
     scene.place_ball(model, data, ids, [6.0, 0, 6.0], [0, 0, 0])   # park it clear
     mujoco.mj_forward(model, data)
 
@@ -98,7 +122,7 @@ def replay_open_loop(model, data, ids, rec, flap_amp=0.0):
                 scene.flap(model, data, ids, t, amp=flap_amp)
             mujoco.mj_step(model, data)
             t += model.opt.timestep
-        traj.append(data.qpos[0:3].copy())
+        traj.append(data.subtree_com[ids['thorax']].copy())
     return np.array(traj)
 
 
@@ -161,22 +185,32 @@ def main(policy_path, rallies, out, flap):
 
     # --- test 1: does the reduced body track the real one? -----------------
     rng = np.random.default_rng(7)
-    rms, finals, lens, rms_flap = [], [], [], []
-    for i in range(max(6, rallies // 3)):
+    rms, free, lens, rms_flap = [], [], [], []
+    for i in range(max(24, rallies)):
         rec = reduced_rally(fn, rng)
         if len(rec['thrust']) < 20:
             continue
-        err = np.linalg.norm(replay_open_loop(model, data, ids, rec) - rec['fly'], axis=1)
+        full = replay_open_loop(model, data, ids, rec)
+        err = np.linalg.norm((full - full[0]) - (rec['fly'] - rec['fly'][0]), axis=1)
         rms.append(float(np.sqrt((err ** 2).mean())))
-        finals.append(float(err[-1]))
         lens.append(len(err) * P.DT)
-        ef = np.linalg.norm(replay_open_loop(model, data, ids, rec, flap) - rec['fly'], axis=1)
+
+        k = first_limit(rec)
+        if k >= 20:
+            free.append(float(np.sqrt((err[:k] ** 2).mean())))
+
+        ff = replay_open_loop(model, data, ids, rec, flap)
+        ef = np.linalg.norm((ff - ff[0]) - (rec['fly'] - rec['fly'][0]), axis=1)
         rms_flap.append(float(np.sqrt((ef ** 2).mean())))
+
+    body = 0.301
     print(f'\nopen-loop replay over {len(rms)} rallies ({np.mean(lens) * 1000:.0f} ms each)')
-    print(f'  RMS divergence   {np.mean(rms):.4f} cm   '
-          f'({np.mean(rms) / 0.301 * 100:.1f}% of a body length)')
-    print(f'  final divergence {np.mean(finals):.4f} cm')
-    print(f'  with a canned {220} Hz wingbeat layered on top: {np.mean(rms_flap):.4f} cm RMS')
+    print(f'  while the reduced model is pure dynamics: {np.mean(free):.4f} cm RMS  '
+          f'({np.mean(free) / body * 100:.0f}% of a body length, {len(free)} rallies)')
+    print(f'  including its speed cap and side fences:  {np.mean(rms):.4f} cm RMS')
+    print('    (those fences are rules of the game; the MuJoCo body has none,')
+    print('     so the two stop simulating the same problem once one bites.)')
+    print(f'  with a canned 220 Hz wingbeat layered on:  {np.mean(rms_flap):.4f} cm RMS')
     print('    (a naive sinusoidal flap is not lift-neutral in MuJoCo\'s fluid model --')
     print('     real flight needs a learned wing gait, which is what flybody\'s own')
     print('     flight controller provides.)')
@@ -204,9 +238,10 @@ def main(policy_path, rallies, out, flap):
           f'(vs {mj_rate:5.1%} on the full body)')
 
     stats = {
-        'rms_divergence_cm': float(np.mean(rms)),
+        'rms_divergence_cm': float(np.mean(free)),
+        'rms_divergence_all_cm': float(np.mean(rms)),
         'rms_divergence_with_flap_cm': float(np.mean(rms_flap)),
-        'final_divergence_cm': float(np.mean(finals)),
+        'unconstrained_rallies': len(free),
         'body_length_cm': 0.301,
         'mujoco_return_rate': mj_rate,
         'train_return_rate': red_rate,

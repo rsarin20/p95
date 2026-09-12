@@ -1,0 +1,219 @@
+[
+ {
+  "gen": 1,
+  "spread": 0.35,
+  "score": -6.34214943708923,
+  "return_rate": 0.0,
+  "contact_rate": 0.056640625
+ },
+ {
+  "gen": 100,
+  "spread": 0.393,
+  "score": 5.614306357576105,
+  "return_rate": 0.25390625,
+  "contact_rate": 0.53125
+ },
+ {
+  "gen": 200,
+  "spread": 0.437,
+  "score": 8.981300571996774,
+  "return_rate": 0.35546875,
+  "contact_rate": 0.654296875
+ },
+ {
+  "gen": 300,
+  "spread": 0.48,
+  "score": 9.06380659157374,
+  "return_rate": 0.357421875,
+  "contact_rate": 0.615234375
+ },
+ {
+  "gen": 400,
+  "spread": 0.523,
+  "score": 8.874669782777518,
+  "return_rate": 0.33984375,
+  "contact_rate": 0.59765625
+ },
+ {
+  "gen": 500,
+  "spread": 0.567,
+  "score": 8.67179962977303,
+  "return_rate": 0.337890625,
+  "contact_rate": 0.61328125
+ },
+ {
+  "gen": 600,
+  "spread": 0.61,
+  "score": 9.161741779292964,
+  "return_rate": 0.359375,
+  "contact_rate": 0.646484375
+ },
+ {
+  "gen": 700,
+  "spread": 0.653,
+  "score": 8.875298559203781,
+  "return_rate": 0.34375,
+  "contact_rate": 0.6328125
+ },
+ {
+  "gen": 800,
+  "spread": 0.697,
+  "score": 10.361664146439516,
+  "return_rate": 0.392578125,
+  "contact_rate": 0.681640625
+ },
+ {
+  "gen": 900,
+  "spread": 0.74,
+  "score": 8.448821412021227,
+  "return_rate": 0.322265625,
+  "contact_rate": 0.61328125
+ },
+ {
+  "gen": 1000,
+  "spread": 0.783,
+  "score": 9.261731502188544,
+  "return_rate": 0.341796875,
+  "contact_rate": 0.66015625
+ },
+ {
+  "gen": 1100,
+  "spread": 0.827,
+  "score": 10.05372083492566,
+  "return_rate": 0.357421875,
+  "contact_rate": 0.671875
+ },
+ {
+  "gen": 1200,
+  "spread": 0.87,
+  "score": 10.382961319623707,
+  "return_rate": 0.359375,
+  "contact_rate": 0.712890625
+ },
+ {
+  "gen": 1300,
+  "spread": 0.913,
+  "score": 10.377536070825027,
+  "return_rate": 0.34765625,
+  "contact_rate": 0.73828125
+ },
+ {
+  "gen": 1400,
+  "spread": 0.957,
+  "score": 9.991274334512308,
+  "return_rate": 0.337890625,
+  "contact_rate": 0.716796875
+ },
+ {
+  "gen": 1500,
+  "spread": 1.0,
+  "score": 9.945416233140902,
+  "return_rate": 0.345703125,
+  "contact_rate": 0.701171875
+ },
+ {
+  "gen": 1600,
+  "spread": 1.0,
+  "score": 10.244217711747963,
+  "return_rate": 0.369140625,
+  "contact_rate": 0.689453125
+ },
+ {
+  "gen": 1700,
+  "spread": 1.0,
+  "score": 8.557864154448175,
+  "return_rate": 0.28125,
+  "contact_rate": 0.71484375
+ },
+ {
+  "gen": 1800,
+  "spread": 1.0,
+  "score": 8.882926423836814,
+  "return_rate": 0.330078125,
+  "contact_rate": 0.662109375
+ },
+ {
+  "gen": 1900,
+  "spread": 1.0,
+  "score": 9.718590517992546,
+  "return_rate": 0.361328125,
+  "contact_rate": 0.68359375
+ },
+ {
+  "gen": 2000,
+  "spread": 1.0,
+  "score": 9.83698389840486,
+  "return_rate": 0.365234375,
+  "contact_rate": 0.666015625
+ },
+ {
+  "gen": 2100,
+  "spread": 1.0,
+  "score": 10.999244753613825,
+  "return_rate": 0.40234375,
+  "contact_rate": 0.720703125
+ },
+ {
+  "gen": 2200,
+  "spread": 1.0,
+  "score": 11.067631320088761,
+  "return_rate": 0.359375,
+  "contact_rate": 0.7734375
+ },
+ {
+  "gen": 2300,
+  "spread": 1.0,
+  "score": 10.590694554134428,
+  "return_rate": 0.365234375,
+  "contact_rate": 0.748046875
+ },
+ {
+  "gen": 2400,
+  "spread": 1.0,
+  "score": 10.158296131829061,
+  "return_rate": 0.349609375,
+  "contact_rate": 0.728515625
+ },
+ {
+  "gen": 2500,
+  "spread": 1.0,
+  "score": 11.590070816151307,
+  "return_rate": 0.392578125,
+  "contact_rate": 0.771484375
+ },
+ {
+  "gen": 2600,
+  "spread": 1.0,
+  "score": 12.452535696400313,
+  "return_rate": 0.400390625,
+  "contact_rate": 0.830078125
+ },
+ {
+  "gen": 2700,
+  "spread": 1.0,
+  "score": 12.473691016939187,
+  "return_rate": 0.42578125,
+  "contact_rate": 0.798828125
+ },
+ {
+  "gen": 2800,
+  "spread": 1.0,
+  "score": 12.511155963375762,
+  "return_rate": 0.435546875,
+  "contact_rate": 0.775390625
+ },
+ {
+  "gen": 2900,
+  "spread": 1.0,
+  "score": 13.055625611657586,
+  "return_rate": 0.4609375,
+  "contact_rate": 0.787109375
+ },
+ {
+  "gen": 3000,
+  "spread": 1.0,
+  "score": 11.404519134954894,
+  "return_rate": 0.39453125,
+  "contact_rate": 0.767578125
+ }
+]
