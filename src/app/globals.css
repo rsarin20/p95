@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #fbf6ee;
+  --bg-2: #f6ecdd;
+  --card: #ffffff;
+  --line: #eadfce;
+  --text: #1d1a17;
+  --mute: #7a6f66;
+  --accent: #f2711c;
+  --accent-ink: #ffffff;
+  --ring-track: #f1e4d2;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14110e;
+    --bg-2: #1b1713;
+    --card: #211c18;
+    --line: #352d27;
+    --text: #f6efe6;
+    --mute: #a99c90;
+    --accent: #ff8a3d;
+    --accent-ink: #1d1a17;
+    --ring-track: #352d27;
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+body {
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(1200px 500px at 10% -10%, rgba(242, 113, 28, 0.1), transparent 60%),
+    radial-gradient(900px 500px at 110% 0%, rgba(200, 55, 42, 0.08), transparent 60%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border p-5 shadow-card sm:p-6;
+    background: var(--card);
+    border-color: var(--line);
+  }
+  .muted {
+    color: var(--mute);
+  }
+  .hairline {
+    border-color: var(--line);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition
+      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    outline-color: var(--accent);
+  }
+  .btn-primary {
+    @apply btn shadow-sm hover:brightness-110 active:scale-[.98];
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn-ghost {
+    @apply btn border hover:brightness-95;
+    border-color: var(--line);
+    background: var(--card);
+  }
+  .btn-danger {
+    @apply btn bg-maple-500 text-white hover:bg-maple-600;
+  }
+  .input {
+    @apply w-full rounded-2xl border px-4 py-3 text-base outline-none transition focus:ring-2;
+    background: var(--bg);
+    border-color: var(--line);
+    --tw-ring-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider;
+    color: var(--mute);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold;
+    border-color: var(--line);
+    background: var(--card);
+  }
+  .seg {
+    @apply inline-flex rounded-full border p-1 text-sm;
+    border-color: var(--line);
+    background: var(--bg-2);
+  }
+  .seg > a,
+  .seg > button {
+    @apply rounded-full px-3.5 py-1.5 font-semibold transition;
+    color: var(--mute);
+  }
+  .seg > [aria-current="page"],
+  .seg > [aria-pressed="true"] {
+    background: var(--card);
+    color: var(--text);
+    @apply shadow-sm;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaf {
+    display: none;
+  }
+}

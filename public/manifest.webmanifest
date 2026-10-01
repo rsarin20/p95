@@ -1,0 +1,9 @@
+{
+  "name": "Walktober",
+  "short_name": "Walktober",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#fbf6ee",
+  "theme_color": "#f2711c",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
