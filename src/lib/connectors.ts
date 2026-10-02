@@ -18,7 +18,9 @@ import { recordSteps } from "./entries";
  */
 
 export function appBaseUrl(): string {
-  return (process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
+  const vercel =
+    process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
+  return (process.env.NEXTAUTH_URL || (vercel ? `https://${vercel}` : "http://localhost:3000")).replace(/\/$/, "");
 }
 
 export const GOOGLE_HEALTH = {
