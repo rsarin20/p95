@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Leaves } from "@/components/Leaves";
@@ -7,9 +6,6 @@ import { BottomNav } from "@/components/BottomNav";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { getCurrentUser } from "@/lib/session";
 import { CHALLENGE } from "@/lib/config";
-
-const display = Fraunces({ subsets: ["latin"], variable: "--font-display", weight: ["600", "800"] });
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: { default: `${CHALLENGE.name} — walk the whole month`, template: `%s · ${CHALLENGE.name}` },
@@ -37,7 +33,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getCurrentUser().catch(() => null);
   const signedIn = Boolean(user?.onboarded);
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap"
+        />
+      </head>
       <body className="font-sans">
         <Leaves />
         <Header user={user && user.onboarded ? { name: user.display_name ?? "", avatar: user.avatar } : null} />

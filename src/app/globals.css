@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --bg: #fbf6ee;
   --bg-2: #f6ecdd;
   --card: #ffffff;
