@@ -45,7 +45,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="font-sans">
         <Leaves />
         <Header user={user && user.onboarded ? { name: user.display_name ?? "", avatar: user.avatar } : null} />
-        <main className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-28 pt-4 sm:px-6 sm:pb-16">{children}</main>
+        <main className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-8 pt-4 sm:px-6 sm:pb-10">{children}</main>
+        <footer className="relative z-10 mx-auto max-w-5xl px-4 pb-28 text-center text-xs sm:px-6 sm:pb-10">
+          <nav className="muted flex justify-center gap-4">
+            <a href="/scoring" className="hover:underline">Scoring</a>
+            <a href="/privacy" className="hover:underline">Privacy</a>
+            <a href="/terms" className="hover:underline">Terms</a>
+            <a href="/data-deletion" className="hover:underline">Delete data</a>
+          </nav>
+        </footer>
         {signedIn && <BottomNav />}
         {user && <TimezoneSync current={user.timezone} />}
       </body>

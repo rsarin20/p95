@@ -42,7 +42,8 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
           )}
         </div>
         <p className="muted mt-6 text-xs">
-          We only use your account to sign you in. Your email is never shown publicly — only the name you choose.
+          We only use your account to sign you in. Your email is never shown publicly — only the name you choose. See our{" "}
+          <a href="/privacy" className="underline">privacy policy</a> and <a href="/terms" className="underline">terms</a>.
         </p>
       </div>
     </div>
